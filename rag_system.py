@@ -4,26 +4,18 @@ from pathlib import Path
 from typing import List, Dict, Optional
 import chromadb
 from chromadb.config import Settings
-from chromadb.utils import embedding_functions
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.schema import Document
 
-class ChromaDefaultEmbeddings:
-    """Wrapper for ChromaDB default embedding function to work with LangChain"""
-    def __init__(self):
-        self.ef = embedding_functions.DefaultEmbeddingFunction()
-    
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        return self.ef(texts)
-    
-    def embed_query(self, text: str) -> List[float]:
-        return self.ef([text])[0]
-
 class RAGSystem:
-    def __init__(self):
-        print("Initializing local embeddings (ChromaDB default - free, no API key needed)")
-        self.embeddings = ChromaDefaultEmbeddings()
+    def __init__(self, openai_api_key: str, embedding_model: str = "text-embedding-3-small"):
+        print(f"Initializing OpenAI embeddings: {embedding_model}")
+        self.embeddings = OpenAIEmbeddings(
+            api_key=openai_api_key,
+            model=embedding_model
+        )
         
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,

@@ -11,11 +11,13 @@ load_dotenv()
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_EMBEDDINGS_KEY = os.getenv("OPENAI_EMBEDDINGS_KEY")
 GROK_API_KEY = os.getenv("GROK_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
 
 CHAT_API_KEY = GROK_API_KEY if GROK_API_KEY else OPENAI_API_KEY
+EMBEDDINGS_KEY = OPENAI_EMBEDDINGS_KEY if OPENAI_EMBEDDINGS_KEY else OPENAI_API_KEY
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -37,9 +39,13 @@ async def on_ready():
         print("ERROR: No chat API key found (GROK_API_KEY or OPENAI_API_KEY)!")
         return
     
+    if not EMBEDDINGS_KEY:
+        print("ERROR: No embeddings API key found (OPENAI_EMBEDDINGS_KEY or OPENAI_API_KEY)!")
+        return
+    
     print("Initializing RAG system...")
-    print(f"Using embeddings: HuggingFace (local, free)")
-    rag_system = RAGSystem()
+    print(f"Using OpenAI embeddings for RAG indexing")
+    rag_system = RAGSystem(openai_api_key=EMBEDDINGS_KEY)
     
     print("Indexing knowledge base...")
     rag_system.index_documents()
