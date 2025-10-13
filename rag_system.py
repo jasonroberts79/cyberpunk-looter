@@ -124,12 +124,14 @@ class RAGSystem:
         print(f"Created {len(splits)} chunks")
         
         print("Initializing vector database...")
-        try:
-            if os.path.exists(self.persist_directory):
-                shutil.rmtree(self.persist_directory)
-                print(f"Cleared old database")
-        except Exception as e:
-            print(f"Note: Could not clear old database: {e}")
+        
+        if self.vectorstore is not None:
+            try:
+                print("Deleting existing collection...")
+                self.vectorstore.delete_collection()
+                self.vectorstore = None
+            except Exception as e:
+                print(f"Note: Could not delete collection: {e}")
         
         print("Creating embeddings and storing in vector database...")
         self.vectorstore = Chroma.from_documents(
