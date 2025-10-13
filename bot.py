@@ -11,8 +11,11 @@ load_dotenv()
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GROK_API_KEY = os.getenv("GROK_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
+
+CHAT_API_KEY = GROK_API_KEY if GROK_API_KEY else OPENAI_API_KEY
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -34,10 +37,15 @@ async def on_ready():
         print("ERROR: OPENAI_API_KEY not found in environment variables!")
         return
     
+    if not CHAT_API_KEY:
+        print("ERROR: No chat API key found (GROK_API_KEY or OPENAI_API_KEY)!")
+        return
+    
     print("Initializing RAG system...")
+    print(f"Using embeddings API: OpenAI")
     rag_system = RAGSystem(
         openai_api_key=OPENAI_API_KEY,
-        openai_base_url=OPENAI_BASE_URL
+        openai_base_url=None
     )
     
     print("Indexing knowledge base...")
@@ -46,11 +54,16 @@ async def on_ready():
     print("Initializing memory system...")
     memory_system = MemorySystem()
     
-    print("Initializing OpenAI client...")
-    if OPENAI_BASE_URL:
-        openai_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
+    print(f"Initializing chat client...")
+    if GROK_API_KEY:
+        print(f"Using Grok API with model: {OPENAI_MODEL}")
     else:
-        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        print(f"Using OpenAI API with model: {OPENAI_MODEL}")
+        
+    if OPENAI_BASE_URL:
+        openai_client = OpenAI(api_key=CHAT_API_KEY, base_url=OPENAI_BASE_URL)
+    else:
+        openai_client = OpenAI(api_key=CHAT_API_KEY)
     
     print("Bot is ready!")
 

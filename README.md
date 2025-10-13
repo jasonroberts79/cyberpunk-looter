@@ -8,7 +8,7 @@ An intelligent Discord bot powered by Retrieval-Augmented Generation (RAG) with 
 - 💭 **Short-term Memory**: Maintains conversation context within sessions
 - 🧠 **Long-term Memory**: Remembers user preferences across sessions
 - 📚 **Knowledge Base**: Easily add markdown files to expand the bot's knowledge
-- 🔄 **OpenAI Compatible**: Works with any OpenAI-compatible API
+- 🔄 **OpenAI Compatible**: Works with any OpenAI-compatible API (OpenAI, Grok, Azure, etc.)
 
 ## Quick Start
 
@@ -19,8 +19,10 @@ An intelligent Discord bot powered by Retrieval-Augmented Generation (RAG) with 
    - **IMPORTANT**: Enable "Message Content Intent" in Bot settings
    - Get your bot token and add to server
 
-2. **OpenAI API Key**: Get your API key from [OpenAI](https://platform.openai.com/api-keys)
-   - Or use any OpenAI-compatible provider (Azure, Groq, local models, etc.)
+2. **API Keys**: 
+   - **For Grok (xAI)**: Get your key from [console.x.ai](https://console.x.ai) (recommended)
+   - **For OpenAI**: Get your key from [OpenAI](https://platform.openai.com/api-keys)
+   - Or use any OpenAI-compatible provider (Azure, local models, etc.)
 
 ### Setup
 
@@ -54,8 +56,14 @@ An intelligent Discord bot powered by Retrieval-Augmented Generation (RAG) with 
 
 You can customize the bot by setting these environment variables:
 
-- `OPENAI_BASE_URL` - Custom API endpoint (default: OpenAI)
-- `OPENAI_MODEL` - Model to use (default: gpt-4)
+**For Grok API** (see [GROK_SETUP.md](GROK_SETUP.md)):
+- `GROK_API_KEY` - Your Grok API key from console.x.ai
+- `OPENAI_BASE_URL` - Set to `https://api.x.ai/v1`
+- `OPENAI_MODEL` - Set to `grok-4`, `grok-4-mini`, or `grok-code-fast-1`
+
+**For other providers**:
+- `OPENAI_BASE_URL` - Custom API endpoint
+- `OPENAI_MODEL` - Model to use
 
 ## Architecture
 
