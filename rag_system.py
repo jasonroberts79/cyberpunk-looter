@@ -14,7 +14,8 @@ class RAGSystem:
         print(f"Initializing OpenAI embeddings: {embedding_model}")
         self.embeddings = OpenAIEmbeddings(
             api_key=openai_api_key,
-            model=embedding_model
+            model=embedding_model,
+            base_url="https://api.openai.com/v1"
         )
         
         self.text_splitter = RecursiveCharacterTextSplitter(
