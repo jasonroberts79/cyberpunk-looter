@@ -33,20 +33,13 @@ async def on_ready():
     
     print(f'{bot.user} has connected to Discord!')
     
-    if not OPENAI_API_KEY:
-        print("ERROR: OPENAI_API_KEY not found in environment variables!")
-        return
-    
     if not CHAT_API_KEY:
         print("ERROR: No chat API key found (GROK_API_KEY or OPENAI_API_KEY)!")
         return
     
     print("Initializing RAG system...")
-    print(f"Using embeddings API: OpenAI")
-    rag_system = RAGSystem(
-        openai_api_key=OPENAI_API_KEY,
-        openai_base_url=None
-    )
+    print(f"Using embeddings: HuggingFace (local, free)")
+    rag_system = RAGSystem()
     
     print("Indexing knowledge base...")
     rag_system.index_documents()

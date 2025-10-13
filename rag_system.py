@@ -4,18 +4,26 @@ from pathlib import Path
 from typing import List, Dict, Optional
 import chromadb
 from chromadb.config import Settings
+from chromadb.utils import embedding_functions
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.schema import Document
 
+class ChromaDefaultEmbeddings:
+    """Wrapper for ChromaDB default embedding function to work with LangChain"""
+    def __init__(self):
+        self.ef = embedding_functions.DefaultEmbeddingFunction()
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return self.ef(texts)
+    
+    def embed_query(self, text: str) -> List[float]:
+        return self.ef([text])[0]
+
 class RAGSystem:
-    def __init__(self, openai_api_key: str, openai_base_url: Optional[str] = None, embedding_model: str = "text-embedding-3-small"):
-        self.embeddings = OpenAIEmbeddings(
-            api_key=openai_api_key,
-            base_url=openai_base_url,
-            model=embedding_model
-        )
+    def __init__(self):
+        print("Initializing local embeddings (ChromaDB default - free, no API key needed)")
+        self.embeddings = ChromaDefaultEmbeddings()
         
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
@@ -78,12 +86,15 @@ class RAGSystem:
         
         persist_directory = "./chroma_db"
         
-        print("Clearing existing vector database...")
-        if os.path.exists(persist_directory):
-            shutil.rmtree(persist_directory)
-            print(f"Removed old database at {persist_directory}")
+        print("Initializing vector database...")
+        try:
+            if os.path.exists(persist_directory):
+                shutil.rmtree(persist_directory)
+                print(f"Cleared old database")
+        except Exception as e:
+            print(f"Note: Could not clear old database: {e}")
         
-        print("Creating fresh embeddings and storing in vector database...")
+        print("Creating embeddings and storing in vector database...")
         self.vectorstore = Chroma.from_documents(
             documents=splits,
             embedding=self.embeddings,
@@ -91,11 +102,7 @@ class RAGSystem:
             persist_directory=persist_directory
         )
         
-        if hasattr(self.vectorstore, 'persist'):
-            self.vectorstore.persist()
-            print(f"Indexing complete! {len(splits)} chunks persisted to disk.")
-        else:
-            print(f"Indexing complete! {len(splits)} chunks stored (auto-persisted).")
+        print(f"Indexing complete! {len(splits)} chunks indexed.")
     
     def search(self, query: str, k: int = 4) -> List[Dict]:
         if not self.vectorstore:
