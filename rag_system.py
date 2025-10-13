@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from typing import List, Dict, Optional
 import chromadb
@@ -75,9 +76,26 @@ class RAGSystem:
         splits = self.text_splitter.split_documents(documents)
         print(f"Created {len(splits)} chunks")
         
-        print("Creating embeddings and storing in vector database...")
-        self.vectorstore.add_documents(splits)
-        print("Indexing complete!")
+        persist_directory = "./chroma_db"
+        
+        print("Clearing existing vector database...")
+        if os.path.exists(persist_directory):
+            shutil.rmtree(persist_directory)
+            print(f"Removed old database at {persist_directory}")
+        
+        print("Creating fresh embeddings and storing in vector database...")
+        self.vectorstore = Chroma.from_documents(
+            documents=splits,
+            embedding=self.embeddings,
+            collection_name="markdown_docs",
+            persist_directory=persist_directory
+        )
+        
+        if hasattr(self.vectorstore, 'persist'):
+            self.vectorstore.persist()
+            print(f"Indexing complete! {len(splits)} chunks persisted to disk.")
+        else:
+            print(f"Indexing complete! {len(splits)} chunks stored (auto-persisted).")
     
     def search(self, query: str, k: int = 4) -> List[Dict]:
         if not self.vectorstore:
