@@ -8,6 +8,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.schema import Document
+from pypdf import PdfReader
 
 class RAGSystem:
     def __init__(self, openai_api_key: str, embedding_model: str = "text-embedding-3-small"):
@@ -50,7 +51,7 @@ class RAGSystem:
                     content = f.read()
                     doc = Document(
                         page_content=content,
-                        metadata={"source": str(md_file), "filename": md_file.name}
+                        metadata={"source": str(md_file), "filename": md_file.name, "type": "markdown"}
                     )
                     documents.append(doc)
                     print(f"Loaded: {md_file.name}")
@@ -59,9 +60,60 @@ class RAGSystem:
         
         return documents
     
+    def load_pdf_files(self, directory: str = "knowledge_base") -> List[Document]:
+        documents = []
+        knowledge_path = Path(directory)
+        
+        if not knowledge_path.exists():
+            return documents
+        
+        pdf_files = list(knowledge_path.glob("**/*.pdf"))
+        
+        if not pdf_files:
+            print(f"No PDF files found in '{directory}'")
+            return documents
+        
+        for pdf_file in pdf_files:
+            try:
+                reader = PdfReader(pdf_file)
+                text_content = []
+                
+                for page_num, page in enumerate(reader.pages, 1):
+                    text = page.extract_text()
+                    if text and text.strip():
+                        text_content.append(text)
+                
+                if text_content:
+                    full_text = "\n\n".join(text_content)
+                    doc = Document(
+                        page_content=full_text,
+                        metadata={
+                            "source": str(pdf_file), 
+                            "filename": pdf_file.name,
+                            "type": "pdf",
+                            "pages": len(reader.pages)
+                        }
+                    )
+                    documents.append(doc)
+                    print(f"Loaded: {pdf_file.name} ({len(reader.pages)} pages)")
+                else:
+                    print(f"Warning: {pdf_file.name} contains no extractable text")
+            except Exception as e:
+                print(f"Error loading {pdf_file}: {e}")
+        
+        return documents
+    
     def index_documents(self, directory: str = "knowledge_base"):
+        print("Loading documents...")
+        documents = []
+        
         print("Loading markdown files...")
-        documents = self.load_markdown_files(directory)
+        md_docs = self.load_markdown_files(directory)
+        documents.extend(md_docs)
+        
+        print("Loading PDF files...")
+        pdf_docs = self.load_pdf_files(directory)
+        documents.extend(pdf_docs)
         
         if not documents:
             print("No documents to index.")
