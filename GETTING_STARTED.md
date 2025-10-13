@@ -38,7 +38,8 @@ Once intents are enabled, click the **Run** button in Replit. The bot will:
 
 ### Core Features
 
-- **🧠 RAG-Powered Answers**: Answers questions based on your markdown knowledge base
+- **🧠 RAG-Powered Answers**: Answers questions based on your markdown and PDF knowledge base
+- **📄 PDF Support**: Automatically extracts and indexes text from PDF documents
 - **💭 Short-term Memory**: Remembers conversation context within each session
 - **📚 Long-term Memory**: Saves user preferences and interaction history across sessions
 - **🔄 OpenAI Compatible**: Works with any OpenAI-compatible API
@@ -59,9 +60,13 @@ Once intents are enabled, click the **Run** button in Replit. The bot will:
 
 ### Adding Your Own Documents
 
-1. Add markdown files (`.md`) to the `knowledge_base/` directory
+1. Add markdown files (`.md`) or PDF files (`.pdf`) to the `knowledge_base/` directory
 2. In Discord, type `!reindex` to load the new documents
 3. Ask questions about your content with `!ask`
+
+**Supported Formats:**
+- ✅ Markdown (`.md`) - Plain text with formatting
+- ✅ PDF (`.pdf`) - Automatically extracts text from PDF documents
 
 ### Sample Knowledge Included
 
@@ -111,7 +116,7 @@ Once the bot is online in Discord:
 ├── bot.py                 # Main Discord bot logic
 ├── rag_system.py         # RAG implementation with ChromaDB
 ├── memory_system.py      # Short and long-term memory
-├── knowledge_base/       # Your markdown documents
+├── knowledge_base/       # Your markdown and PDF documents
 │   ├── sample_doc1.md
 │   ├── sample_doc2.md
 │   └── sample_doc3.md
@@ -126,7 +131,7 @@ Once the bot is online in Discord:
 1. **Enable Discord intents** (see Step 1 above)
 2. **Invite bot to your server** (see Step 2 above)
 3. **Run the bot** and test with `!help_rag`
-4. **Add your own markdown files** to customize the knowledge base
+4. **Add your own markdown or PDF files** to customize the knowledge base
 5. **Share your bot** with others in your Discord server!
 
 ---
@@ -143,8 +148,9 @@ Once the bot is online in Discord:
 - Save changes and restart the bot
 
 ### Knowledge base not updating
-- Use `!reindex` command after adding new markdown files
-- Verify files are in the `knowledge_base/` directory with `.md` extension
+- Use `!reindex` command after adding new files
+- Verify files are in the `knowledge_base/` directory with `.md` or `.pdf` extension
+- Note: PDFs with only images (scanned documents) may not extract text properly
 
 ---
 

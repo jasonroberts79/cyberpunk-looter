@@ -39,7 +39,7 @@
 
 The bot is ready to run! It will automatically:
 - Connect to Discord
-- Index your knowledge base
+- Index your knowledge base (markdown and PDF files)
 - Start responding to commands
 
 ## Testing

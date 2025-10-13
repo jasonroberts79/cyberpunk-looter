@@ -4,10 +4,11 @@ An intelligent Discord bot powered by Retrieval-Augmented Generation (RAG) with 
 
 ## Features
 
-- 🤖 **RAG System**: Answers questions based on your markdown knowledge base
+- 🤖 **RAG System**: Answers questions based on your markdown and PDF knowledge base
+- 📄 **PDF Support**: Automatically extracts and indexes text from PDF documents
 - 💭 **Short-term Memory**: Maintains conversation context within sessions
 - 🧠 **Long-term Memory**: Remembers user preferences across sessions
-- 📚 **Knowledge Base**: Easily add markdown files to expand the bot's knowledge
+- 📚 **Knowledge Base**: Easily add markdown and PDF files to expand the bot's knowledge
 - 🔄 **OpenAI Compatible**: Works with any OpenAI-compatible API (OpenAI, Grok, Azure, etc.)
 
 ## Quick Start
@@ -32,7 +33,7 @@ An intelligent Discord bot powered by Retrieval-Augmented Generation (RAG) with 
 
 ### Adding Knowledge
 
-1. Add your markdown files to the `knowledge_base/` directory
+1. Add your markdown (`.md`) or PDF (`.pdf`) files to the `knowledge_base/` directory
 2. Use the `!reindex` command in Discord to reload the knowledge base
 
 ## Discord Commands
@@ -70,4 +71,4 @@ You can customize the bot by setting these environment variables:
 - **rag_system.py**: Handles document ingestion and semantic search
 - **memory_system.py**: Manages short and long-term memory
 - **bot.py**: Discord bot logic and command handlers
-- **knowledge_base/**: Your markdown documents
+- **knowledge_base/**: Your markdown and PDF documents
