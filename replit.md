@@ -39,3 +39,6 @@ An intelligent Discord bot that uses Retrieval-Augmented Generation (RAG) with s
 
 ## Recent Changes
 - 2025-10-13: Initial implementation with RAG, memory systems, and Discord integration
+- 2025-10-13: Fixed vector store persistence to survive restarts
+- 2025-10-13: Added proper reindex functionality that prevents duplicate documents
+- 2025-10-13: All core features implemented and tested
