@@ -79,7 +79,7 @@ async def ask_question(ctx, *, question: str):
         
         memory_system.add_to_short_term(user_id, "user", question)
         
-        context = rag_system.get_context_for_query(question, k=3)
+        context = rag_system.get_context_for_query(question, k=10)
         
         short_term_context = memory_system.get_short_term_context(user_id, max_messages=4)
         user_summary = memory_system.get_user_summary(user_id)
