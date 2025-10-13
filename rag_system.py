@@ -27,13 +27,7 @@ class RAGSystem:
         self.vectorstore = None
         self.knowledge_dir = Path("knowledge_base")
         self.knowledge_dir.mkdir(exist_ok=True)
-        
-        persist_directory = "./chroma_db"
-        self.vectorstore = Chroma(
-            collection_name="markdown_docs",
-            embedding_function=self.embeddings,
-            persist_directory=persist_directory
-        )
+        self.persist_directory = "./chroma_db"
     
     def load_markdown_files(self, directory: str = "knowledge_base") -> List[Document]:
         documents = []
@@ -77,12 +71,10 @@ class RAGSystem:
         splits = self.text_splitter.split_documents(documents)
         print(f"Created {len(splits)} chunks")
         
-        persist_directory = "./chroma_db"
-        
         print("Initializing vector database...")
         try:
-            if os.path.exists(persist_directory):
-                shutil.rmtree(persist_directory)
+            if os.path.exists(self.persist_directory):
+                shutil.rmtree(self.persist_directory)
                 print(f"Cleared old database")
         except Exception as e:
             print(f"Note: Could not clear old database: {e}")
@@ -92,7 +84,7 @@ class RAGSystem:
             documents=splits,
             embedding=self.embeddings,
             collection_name="markdown_docs",
-            persist_directory=persist_directory
+            persist_directory=self.persist_directory
         )
         
         print(f"Indexing complete! {len(splits)} chunks indexed.")
