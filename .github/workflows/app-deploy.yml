@@ -85,16 +85,17 @@ jobs:
         docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
         docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:latest
 
-    - name: Execute Cloud Run Job
+    - name: Deploy to Cloud Run
       run: |
-        echo "Starting Cloud Run Job execution..."
-        gcloud run jobs execute ${{ env.SERVICE_NAME }} \
+        echo "Deploying to Cloud Run..."
+        gcloud run services update ${{ env.SERVICE_NAME }} \
+          --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
           --region=${{ env.GCP_REGION }} \
-          --wait
+          --quiet
 
     - name: Deployment notification
       run: |
-        echo "🚀 Job executed successfully!"
-        echo "Job: ${{ env.SERVICE_NAME }}"
+        echo "🚀 Service deployed successfully!"
+        echo "Service: ${{ env.SERVICE_NAME }}"
         echo "Region: ${{ env.GCP_REGION }}"
         echo "Image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
