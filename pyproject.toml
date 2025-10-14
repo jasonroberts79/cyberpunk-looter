@@ -16,6 +16,7 @@ dependencies = [
     "pypdf>=6.1.1",
     "neo4j>=5.28.2",
     "neo4j-graphrag>=1.10.0",
+    "replit-object-storage>=1.0.2",
 ]
 
 [[tool.uv.index]]
