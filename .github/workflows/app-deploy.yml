@@ -1,10 +1,18 @@
-name: Discord Bot CI/CD
+name: Application CI/CD
 
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - 'terraform/**'
+      - '**.md'
+      - '.github/workflows/terraform.yml'
   pull_request:
     branches: [ main, master ]
+    paths-ignore:
+      - 'terraform/**'
+      - '**.md'
+      - '.github/workflows/terraform.yml'
   workflow_dispatch:
 
 env:
@@ -46,65 +54,8 @@ jobs:
         test -f memory_system.py && echo "✓ memory_system.py found"
         test -f app_storage.py && echo "✓ app_storage.py found"
 
-  terraform:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-
-    defaults:
-      run:
-        working-directory: ./terraform
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.6.0
-
-    - name: Terraform Init
-      run: terraform init -input=false
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Terraform Format Check
-      run: terraform fmt -check
-      continue-on-error: true
-
-    - name: Terraform Validate
-      run: terraform validate
-
-    - name: Terraform Plan
-      run: terraform plan -input=false -var="project_id=${{ vars.GCP_PROJECT_ID }}" -out=tfplan
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Terraform Apply
-      run: terraform apply -input=false -auto-approve tfplan
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Get Terraform Outputs
-      id: tf_outputs
-      run: |
-        echo "artifact_registry_url=$(terraform output -raw artifact_registry_url)" >> $GITHUB_OUTPUT
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-
-    outputs:
-      artifact_registry_url: ${{ steps.tf_outputs.outputs.artifact_registry_url }}
-
   deploy:
-    needs: terraform
+    needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 

@@ -1,0 +1,77 @@
+name: Terraform Infrastructure
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'terraform/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+env:
+  GCP_REGION: us-central1
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    defaults:
+      run:
+        working-directory: ./terraform
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Terraform Init
+      run: terraform init -input=false
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Terraform Format Check
+      run: terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      run: terraform plan -input=false -var="project_id=${{ vars.GCP_PROJECT_ID }}" -out=tfplan
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: terraform apply -input=false -auto-approve tfplan
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Get Terraform Outputs
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      id: tf_outputs
+      run: |
+        echo "artifact_registry_url=$(terraform output -raw artifact_registry_url)" >> $GITHUB_OUTPUT
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Infrastructure Update Complete
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        echo "✅ Terraform infrastructure updated successfully!"
+        echo "Artifact Registry: ${{ steps.tf_outputs.outputs.artifact_registry_url }}"
