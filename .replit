@@ -33,5 +33,6 @@ outputType = "console"
 defaultBucketID = "replit-objstore-482c8c81-90d4-470d-972d-efc72f89fafc"
 
 [deployment]
-deploymentTarget = "vm"
+deploymentTarget = "gce"
 run = ["python", "bot.py"]
+ignorePorts = true
