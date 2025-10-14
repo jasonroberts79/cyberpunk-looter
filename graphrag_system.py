@@ -373,8 +373,17 @@ class GraphRAGSystem:
                     """
                 )
                 print(f"Vector index '{self.vector_index_name}' created")
+                
+                session.run(
+                    """
+                    CREATE INDEX chunk_sequence_index IF NOT EXISTS
+                    FOR (c:Chunk)
+                    ON (c.source, c.chunk_index)
+                    """
+                )
+                print("Composite index on (source, chunk_index) created")
             except Exception as e:
-                print(f"Error creating vector index: {e}")
+                print(f"Error creating indexes: {e}")
     
     def search(self, query: str, k: int = 10) -> str:
         if not self.rag:

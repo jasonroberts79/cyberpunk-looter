@@ -63,6 +63,10 @@ The current implementation uses:
 - Incremental indexing that tracks file modifications and only processes changed files
 
 ## Recent Changes
+- 2025-10-14: Fixed Neo4j MemoryPoolOutOfMemoryError by optimizing sequential relationship creation
+- 2025-10-14: Added chunk_index property to chunks for efficient sequential linking
+- 2025-10-14: Created composite index on (source, chunk_index) for improved query performance
+- 2025-10-14: Refactored storage to use Replit Object Storage (app_storage.py) instead of file system
 - 2025-10-14: Implemented incremental indexing (tracks file changes, skips unchanged files on startup)
 - 2025-10-14: Aligned documentation with actual implementation (removed inflated feature claims)
 - 2025-10-14: Removed deprecated rag_system.py (ChromaDB version)
