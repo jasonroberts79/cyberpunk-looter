@@ -1,9 +1,10 @@
 import os
+import asyncio
 import discord
 from discord.ext import commands
 from openai import OpenAI
 from dotenv import load_dotenv
-from rag_system import RAGSystem
+from graphrag_system import GraphRAGSystem
 from memory_system import MemorySystem
 from typing import Optional
 
@@ -16,6 +17,10 @@ GROK_API_KEY = os.getenv("GROK_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
 
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+
 CHAT_API_KEY = GROK_API_KEY if GROK_API_KEY else OPENAI_API_KEY
 EMBEDDINGS_KEY = OPENAI_EMBEDDINGS_KEY if OPENAI_EMBEDDINGS_KEY else OPENAI_API_KEY
 
@@ -25,13 +30,13 @@ intents.messages = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-rag_system: Optional[RAGSystem] = None
+graphrag_system: Optional[GraphRAGSystem] = None
 memory_system: Optional[MemorySystem] = None
 openai_client: Optional[OpenAI] = None
 
 @bot.event
 async def on_ready():
-    global rag_system, memory_system, openai_client
+    global graphrag_system, memory_system, openai_client
     
     print(f'{bot.user} has connected to Discord!')
     
@@ -43,12 +48,22 @@ async def on_ready():
         print("ERROR: No embeddings API key found (OPENAI_EMBEDDINGS_KEY or OPENAI_API_KEY)!")
         return
     
-    print("Initializing RAG system...")
-    print(f"Using OpenAI embeddings for RAG indexing")
-    rag_system = RAGSystem(openai_api_key=EMBEDDINGS_KEY)
+    if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD]):
+        print("ERROR: Neo4j credentials not found (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)!")
+        return
     
-    print("Indexing knowledge base...")
-    rag_system.index_documents()
+    print("Initializing GraphRAG system...")
+    print(f"Using Neo4j GraphRAG with OpenAI embeddings")
+    graphrag_system = GraphRAGSystem(
+        neo4j_uri=NEO4J_URI,
+        neo4j_username=NEO4J_USERNAME,
+        neo4j_password=NEO4J_PASSWORD,
+        openai_api_key=EMBEDDINGS_KEY,
+        grok_api_key=GROK_API_KEY
+    )
+    
+    print("Building knowledge graph (this may take several minutes)...")
+    await graphrag_system.build_knowledge_graph()
     
     print("Initializing memory system...")
     memory_system = MemorySystem()
@@ -68,7 +83,7 @@ async def on_ready():
 
 @bot.command(name="ask", help="Ask a question using the knowledge base")
 async def ask_question(ctx, *, question: str):
-    if not rag_system or not memory_system or not openai_client:
+    if not graphrag_system or not memory_system or not openai_client:
         await ctx.send("Bot is still initializing. Please wait...")
         return
     
@@ -79,7 +94,7 @@ async def ask_question(ctx, *, question: str):
         
         memory_system.add_to_short_term(user_id, "user", question)
         
-        context = rag_system.get_context_for_query(question, k=10)
+        context = graphrag_system.get_context_for_query(question, k=10)
         
         short_term_context = memory_system.get_short_term_context(user_id, max_messages=4)
         user_summary = memory_system.get_user_summary(user_id)
@@ -129,15 +144,16 @@ Be conversational, helpful, and remember details from our conversation."""
             await ctx.send(f"Error generating response: {str(e)}")
             print(f"Error: {e}")
 
-@bot.command(name="reindex", help="Reload and reindex the knowledge base")
+@bot.command(name="reindex", help="Rebuild the knowledge graph")
 async def reindex(ctx):
-    if not rag_system:
-        await ctx.send("RAG system not initialized.")
+    if not graphrag_system:
+        await ctx.send("GraphRAG system not initialized.")
         return
     
     async with ctx.typing():
-        rag_system.index_documents()
-        await ctx.send("Knowledge base reindexed successfully!")
+        await ctx.send("Rebuilding knowledge graph... This may take several minutes.")
+        await graphrag_system.build_knowledge_graph()
+        await ctx.send("Knowledge graph rebuilt successfully!")
 
 @bot.command(name="clear", help="Clear your conversation history")
 async def clear_memory(ctx):
@@ -164,14 +180,19 @@ async def help_command(ctx):
     help_text = """
 **Available Commands:**
 
-`!ask <question>` - Ask a question using the knowledge base
-`!reindex` - Reload and reindex the knowledge base
+`!ask <question>` - Ask a question using the knowledge graph
+`!reindex` - Rebuild the knowledge graph from documents
 `!clear` - Clear your conversation history
 `!memory` - View your interaction summary
 `!help_rag` - Show this help message
 
 **Example:**
 `!ask What is the main topic in the knowledge base?`
+
+**GraphRAG Features:**
+- Multi-hop reasoning across connected entities
+- Relationship-aware retrieval
+- Entity extraction and graph structure
     """
     await ctx.send(help_text)
 
