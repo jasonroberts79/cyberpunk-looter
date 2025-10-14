@@ -193,9 +193,10 @@ async def help_command(ctx):
 `!ask What is the main topic in the knowledge base?`
 
 **GraphRAG Features:**
-- Multi-hop reasoning across connected entities
-- Relationship-aware retrieval
-- Entity extraction and graph structure
+- Vector similarity search with graph-enhanced context
+- Sequential chunk relationships for context expansion
+- Neo4j graph database for efficient retrieval
+- Conversation memory and user preference tracking
     """
     await ctx.send(help_text)
 

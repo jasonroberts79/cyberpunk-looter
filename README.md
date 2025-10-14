@@ -1,13 +1,14 @@
-# Agentic RAG Discord Chatbot
+# Agentic GraphRAG Discord Chatbot
 
-An intelligent Discord bot powered by Retrieval-Augmented Generation (RAG) with short and long-term memory capabilities.
+An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation (GraphRAG) using Neo4j, with short and long-term memory capabilities.
 
 ## Features
 
-- 🤖 **RAG System**: Answers questions based on your markdown and PDF knowledge base
+- 🤖 **GraphRAG System**: Answers questions using Neo4j graph database with vector similarity search
+- 📊 **Knowledge Graph**: Documents stored as chunk nodes with sequential relationships for context expansion
 - 📄 **PDF Support**: Automatically extracts and indexes text from PDF documents
-- 💭 **Short-term Memory**: Maintains conversation context within sessions
-- 🧠 **Long-term Memory**: Remembers user preferences across sessions
+- 💭 **Short-term Memory**: Maintains conversation context within sessions (up to 10 messages)
+- 🧠 **Long-term Memory**: Remembers user preferences and interaction history
 - 📚 **Knowledge Base**: Easily add markdown and PDF files to expand the bot's knowledge
 - 🔄 **OpenAI Compatible**: Works with any OpenAI-compatible API (OpenAI, Grok, Azure, etc.)
 
@@ -59,16 +60,22 @@ You can customize the bot by setting these environment variables:
 
 **For Grok API** (see [GROK_SETUP.md](GROK_SETUP.md)):
 - `GROK_API_KEY` - Your Grok API key from console.x.ai
-- `OPENAI_BASE_URL` - Set to `https://api.x.ai/v1`
-- `OPENAI_MODEL` - Set to `grok-4`, `grok-4-mini`, or `grok-code-fast-1`
+- `OPENAI_BASE_URL` - Set to `https://api.x.ai/v1` for Grok chat
+- `OPENAI_MODEL` - Chat model to use (e.g., `grok-beta` or other available Grok models)
 
 **For other providers**:
 - `OPENAI_BASE_URL` - Custom API endpoint
-- `OPENAI_MODEL` - Model to use
+- `OPENAI_MODEL` - Chat model to use
 
 ## Architecture
 
-- **rag_system.py**: Handles document ingestion and semantic search
+- **graphrag_system.py**: Handles Neo4j graph database, document ingestion, and vector search
 - **memory_system.py**: Manages short and long-term memory
 - **bot.py**: Discord bot logic and command handlers
 - **knowledge_base/**: Your markdown and PDF documents
+
+### Neo4j GraphRAG Implementation
+- Documents are split into chunks and stored as nodes in Neo4j
+- Each chunk has vector embeddings for similarity search
+- Sequential NEXT_CHUNK relationships connect adjacent chunks for context expansion
+- Neo4j vector index enables fast similarity-based retrieval
