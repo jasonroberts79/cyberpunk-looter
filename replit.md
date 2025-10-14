@@ -63,6 +63,7 @@ The current implementation uses:
 - Incremental indexing that tracks file modifications and only processes changed files
 
 ## Recent Changes
+- 2025-10-14: Updated chatbot prompt to keep responses under 2000 characters (Discord message limit)
 - 2025-10-14: Fixed Neo4j MemoryPoolOutOfMemoryError by optimizing sequential relationship creation
 - 2025-10-14: Added chunk_index property to chunks for efficient sequential linking
 - 2025-10-14: Created composite index on (source, chunk_index) for improved query performance

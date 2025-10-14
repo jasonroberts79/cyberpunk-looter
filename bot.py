@@ -118,7 +118,9 @@ Use the following context from the knowledge base to answer questions. If the an
 Knowledge Base Context:
 {context}
 
-Be conversational, helpful, and remember details from our conversation."""
+IMPORTANT: Keep your responses under 2000 characters (Discord message limit). Be concise and direct while still being helpful and conversational. If a topic requires more detail, offer to break it into parts or focus on key points.
+
+Remember details from our conversation."""
         
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(conversation_history)
