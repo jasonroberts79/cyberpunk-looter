@@ -46,8 +46,8 @@ gcloud iam service-accounts keys create ~/discord-bot-key.json \
 
 Go to your repository settings → Secrets and variables → Actions, and add:
 
-1. `GCP_PROJECT_ID` - Your GCP project ID
-2. `GCP_SA_KEY` - Contents of the `discord-bot-key.json` file
+1. Variable: `GCP_PROJECT_ID` - Your GCP project ID
+2. Secret: `GCP_SA_KEY` - Contents of the `discord-bot-key.json` file
 
 ### Step 3: Enable Required GCP APIs
 
