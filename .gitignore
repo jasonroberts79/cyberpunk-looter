@@ -56,3 +56,5 @@ logs/
 # Memory storage
 memory/
 long_term_memory.json
+
+**/.DS_Store
