@@ -10,7 +10,6 @@ from neo4j_graphrag.llm import OpenAILLM
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
-from object_storage import ReplitObjectStorage
 
 class GraphRAGSystem:
     def __init__(
@@ -62,26 +61,23 @@ class GraphRAGSystem:
         self.retriever = None
         self.rag = None
         
-        self.storage = ReplitObjectStorage()
-        self.tracking_key = "knowledge_base_tracking.json"
+        self.tracking_file = Path("knowledge_base_tracking.json")
         self.processed_files: Dict[str, Dict] = self._load_tracking()
     
     def _load_tracking(self) -> Dict[str, Dict]:
-        try:
-            data = self.storage.load_json(self.tracking_key)
-            if data:
-                print(f"Loaded tracking data for {len(data)} files from object storage")
-                return data
-            else:
-                print("No existing tracking data found in object storage")
+        if self.tracking_file.exists():
+            try:
+                with open(self.tracking_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error loading tracking file: {e}")
                 return {}
-        except Exception as e:
-            print(f"Error loading tracking file: {e}")
-            return {}
+        return {}
     
     def _save_tracking(self):
         try:
-            self.storage.save_json(self.tracking_key, self.processed_files)
+            with open(self.tracking_file, 'w') as f:
+                json.dump(self.processed_files, f, indent=2)
         except Exception as e:
             print(f"Error saving tracking file: {e}")
     

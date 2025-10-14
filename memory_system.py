@@ -1,33 +1,32 @@
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Any
 from collections import defaultdict
-from object_storage import ReplitObjectStorage
 
 class MemorySystem:
     def __init__(self, memory_file: str = "long_term_memory.json"):
-        self.memory_key = memory_file
-        self.storage = ReplitObjectStorage()
+        self.memory_file = Path(memory_file)
         self.short_term_memory: Dict[str, List[Dict]] = defaultdict(list)
         self.long_term_memory: Dict[str, Dict] = {}
         self.load_long_term_memory()
     
     def load_long_term_memory(self):
-        try:
-            data = self.storage.load_json(self.memory_key)
-            if data:
-                self.long_term_memory = data
-                print(f"Loaded long-term memory for {len(self.long_term_memory)} users from object storage")
-            else:
+        if self.memory_file.exists():
+            try:
+                with open(self.memory_file, 'r') as f:
+                    self.long_term_memory = json.load(f)
+                print(f"Loaded long-term memory for {len(self.long_term_memory)} users")
+            except Exception as e:
+                print(f"Error loading long-term memory: {e}")
                 self.long_term_memory = {}
-                print("No existing long-term memory found in object storage")
-        except Exception as e:
-            print(f"Error loading long-term memory: {e}")
+        else:
             self.long_term_memory = {}
     
     def save_long_term_memory(self):
         try:
-            self.storage.save_json(self.memory_key, self.long_term_memory)
+            with open(self.memory_file, 'w') as f:
+                json.dump(self.long_term_memory, f, indent=2)
         except Exception as e:
             print(f"Error saving long-term memory: {e}")
     
