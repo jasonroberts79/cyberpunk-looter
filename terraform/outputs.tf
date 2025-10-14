@@ -1,11 +1,11 @@
-output "service_name" {
-  description = "Name of the Cloud Run service"
-  value       = google_cloud_run_v2_service.discord_bot.name
+output "worker_pool_name" {
+  description = "Name of the Cloud Run worker pool"
+  value       = google_cloud_run_v2_worker_pool.discord_bot.name
 }
 
-output "service_location" {
-  description = "Location of the Cloud Run service"
-  value       = google_cloud_run_v2_service.discord_bot.location
+output "worker_pool_location" {
+  description = "Location of the Cloud Run worker pool"
+  value       = google_cloud_run_v2_worker_pool.discord_bot.location
 }
 
 output "artifact_registry_url" {

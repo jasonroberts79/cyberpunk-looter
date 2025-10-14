@@ -184,10 +184,11 @@ resource "google_secret_manager_secret_iam_member" "neo4j_password_access" {
   member    = "serviceAccount:${google_service_account.discord_bot.email}"
 }
 
-# Cloud Run Service with worker configuration (no ingress)
-resource "google_cloud_run_v2_service" "discord_bot" {
-  name     = var.service_name
-  location = var.region
+# Cloud Run Worker Pool (Preview feature)
+resource "google_cloud_run_v2_worker_pool" "discord_bot" {
+  name         = var.service_name
+  location     = var.region
+  launch_stage = "BETA"
 
   template {
     service_account = google_service_account.discord_bot.email
@@ -200,21 +201,12 @@ resource "google_cloud_run_v2_service" "discord_bot" {
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
 
-      # Configure as worker (no ports exposed)
-      startup_probe {
-        period_seconds    = 240
-        timeout_seconds   = 240
-        failure_threshold = 1
-        tcp_socket {
-          port = 8080
-        }
-      }
-
       resources {
         limits = {
           cpu    = "1"
           memory = "512Mi"
         }
+        cpu_idle         = true
         startup_cpu_boost = true
       }
 
@@ -292,7 +284,6 @@ resource "google_cloud_run_v2_service" "discord_bot" {
             version = "latest"
           }
         }
-      }
       }
     }
   }
