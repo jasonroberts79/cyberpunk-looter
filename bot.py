@@ -118,7 +118,7 @@ Use the following context from the knowledge base to answer questions. If the an
 Knowledge Base Context:
 {context}
 
-IMPORTANT: Keep your responses under 2000 characters (Discord message limit). Be concise and direct while still being helpful and conversational. If a topic requires more detail, offer to break it into parts or focus on key points.
+Be concise and direct.
 
 Remember details from our conversation."""
         
@@ -142,6 +142,7 @@ Remember details from our conversation."""
                 chunks = [answer[i:i+2000] for i in range(0, len(answer), 2000)]
                 for chunk in chunks:
                     await ctx.send(chunk)
+                    await asyncio.sleep(0.5)
             else:
                 await ctx.send(answer)
                 
