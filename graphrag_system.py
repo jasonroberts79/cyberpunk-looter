@@ -291,7 +291,7 @@ class GraphRAGSystem:
             batch = splits[i:i+batch_size]
             
             with self.driver.session() as session:
-                for chunk in batch:
+                for idx, chunk in enumerate(batch, start=i):
                     try:
                         embedding = self.embedder.embed_query(chunk.page_content)
                         
@@ -301,13 +301,15 @@ class GraphRAGSystem:
                                 text: $text,
                                 source: $source,
                                 filename: $filename,
-                                embedding: $embedding
+                                embedding: $embedding,
+                                chunk_index: $chunk_index
                             })
                             """,
                             text=chunk.page_content,
                             source=chunk.metadata.get("source", "unknown"),
                             filename=chunk.metadata.get("filename", "unknown"),
-                            embedding=embedding
+                            embedding=embedding,
+                            chunk_index=idx
                         )
                         chunk_count += 1
                         if chunk_count % 100 == 0:
@@ -323,14 +325,10 @@ class GraphRAGSystem:
             for file in files_to_process:
                 session.run(
                     """
-                    MATCH (c1:Chunk {source: $source}), (c2:Chunk {source: $source})
-                    WHERE elementId(c1) < elementId(c2)
-                    WITH c1, c2
-                    ORDER BY elementId(c1), elementId(c2)
-                    WITH c1, collect(c2) as chunks
-                    WITH c1, chunks[0] as next
-                    WHERE next IS NOT NULL
-                    MERGE (c1)-[:NEXT_CHUNK]->(next)
+                    MATCH (c1:Chunk {source: $source})
+                    MATCH (c2:Chunk {source: $source})
+                    WHERE c2.chunk_index = c1.chunk_index + 1
+                    MERGE (c1)-[:NEXT_CHUNK]->(c2)
                     """,
                     source=str(file)
                 )
