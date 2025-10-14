@@ -127,7 +127,7 @@ Remember details from our conversation."""
                 model=OPENAI_MODEL,
                 messages=messages,
                 temperature=0.6,
-                max_completion_tokens=1000,
+                max_completion_tokens=15000,
             )
             
             answer = response.choices[0].message.content or "I couldn't generate a response."
