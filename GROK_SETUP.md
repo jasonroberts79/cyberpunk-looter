@@ -10,26 +10,6 @@ Your bot is already configured to work with Grok (xAI) API! Here's how to set it
 4. Click **Create API Key**
 5. Copy your API key
 
-## Configuration
-
-### Option 1: Use Replit Secrets (Recommended)
-
-Add these secrets in your Replit:
-
-1. **API Key**: 
-   - If you have a dedicated Grok key: Add `GROK_API_KEY` to Replit Secrets
-   - Or reuse your existing `OPENAI_API_KEY` with your Grok key
-
-2. **Base URL**: Add to Replit Secrets:
-   - Key: `OPENAI_BASE_URL`
-   - Value: `https://api.x.ai/v1`
-
-3. **Model**: Add to Replit Secrets:
-   - Key: `OPENAI_MODEL`
-   - Value: `grok-4` (or `grok-4-mini`, `grok-code-fast-1`)
-
-### Option 2: Use .env File
-
 Create a `.env` file:
 ```bash
 DISCORD_BOT_TOKEN=your_discord_bot_token

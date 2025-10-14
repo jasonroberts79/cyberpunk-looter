@@ -29,8 +29,6 @@ An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation
 ### Setup
 
 1. ⚠️ **Enable Discord Intents**: Go to your [Discord app](https://discord.com/developers/applications), navigate to Bot section, and enable **MESSAGE CONTENT INTENT**
-2. Add API keys to Replit Secrets (already done)
-3. Run the bot - it will automatically connect and index your knowledge base
 
 ### Adding Knowledge
 

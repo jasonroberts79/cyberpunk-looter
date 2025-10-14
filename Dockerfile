@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ ./src/
 
-# Create directory for knowledge base if needed
-RUN mkdir -p /app/knowledge_base
+# Copy knowledge base files
+COPY knowledge_base/ ./knowledge_base/
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

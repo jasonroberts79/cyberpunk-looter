@@ -39,35 +39,6 @@ To use this workflow, add the following secrets in your GitHub repository:
 - `NEO4J_USERNAME` - Neo4j username
 - `NEO4J_PASSWORD` - Neo4j password
 
-#### For Deployment Platform:
-Choose based on where you're deploying:
-
-**Replit:**
-- `REPLIT_TOKEN` - Replit deployment token
-
-**Railway:**
-- `RAILWAY_TOKEN` - Railway API token
-
-**Render:**
-- `RENDER_API_KEY` - Render API key
-
-## Deployment Platforms
-
-### Option 1: Replit (Current)
-Uncomment the Replit deployment section in `deploy.yml` and add your Replit token.
-
-### Option 2: Railway
-1. Install Railway CLI
-2. Uncomment Railway deployment section
-3. Add `RAILWAY_TOKEN` secret
-
-### Option 3: Render
-1. Uncomment Render deployment section
-2. Add `RENDER_API_KEY` secret
-3. Update service ID in the curl command
-
-### Option 4: Other Platforms
-Add your own deployment commands in the deploy job.
 
 ## Manual Deployment
 
@@ -83,11 +54,6 @@ You can manually trigger the workflow:
 - GitHub Actions is for CI/CD automation, not for hosting the bot 24/7
 - Workflows have time limits (6 hours max per job)
 - Best used for testing and triggering deployments to other platforms
-
-✅ **Recommended Setup:**
-- Use this workflow for automated testing
-- Deploy to a proper hosting platform (Replit, Railway, Render, etc.)
-- The workflow can trigger deployments automatically on push
 
 ## Workflow Status Badge
 

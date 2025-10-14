@@ -20,7 +20,7 @@
 
 1. Still in the **Bot** section
 2. Click "Reset Token" (or "Copy" if you haven't reset it before)
-3. Copy the token - you'll need to add it to Replit Secrets as `DISCORD_BOT_TOKEN`
+3. Copy the token add it to local env and/or google secret store
 
 ## Step 4: Invite Bot to Your Server
 
