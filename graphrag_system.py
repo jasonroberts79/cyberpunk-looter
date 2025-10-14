@@ -20,6 +20,7 @@ class GraphRAGSystem:
         neo4j_password: str,
         openai_api_key: str,
         grok_api_key: Optional[str] = None,
+        grok_model: str = "grok-4-fast",
         embedding_model: str = "text-embedding-3-small"
     ):
         print(f"Connecting to Neo4j at {neo4j_uri}")
@@ -35,19 +36,12 @@ class GraphRAGSystem:
             base_url="https://api.openai.com/v1"
         )
         
-        if grok_api_key:
-            self.llm = OpenAILLM(
-                api_key=grok_api_key,
-                base_url="https://api.x.ai/v1",
-                model_name="grok-beta",
-                model_params={"temperature": 0.7}
-            )
-        else:
-            self.llm = OpenAILLM(
-                api_key=openai_api_key,
-                model_name="gpt-4",
-                model_params={"temperature": 0.7}
-            )
+        self.llm = OpenAILLM(
+            api_key=grok_api_key,
+            base_url="https://api.x.ai/v1",
+            model_name=grok_model,
+            model_params={"temperature": 0.7}
+        )
         
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,

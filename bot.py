@@ -14,18 +14,16 @@ load_dotenv()
 logging.getLogger('discord.gateway').setLevel(logging.ERROR)
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_EMBEDDINGS_KEY = os.getenv("OPENAI_EMBEDDINGS_KEY")
-GROK_API_KEY = os.getenv("GROK_API_KEY")
+
+OPENAI_MODEL = os.getenv("OPENAI_MODEL")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
+GROK_API_KEY = os.getenv("GROK_API_KEY")
+
+OPENAI_EMBEDDINGS_KEY = os.getenv("OPENAI_EMBEDDINGS_KEY")
 
 NEO4J_URI = os.getenv("NEO4J_URI")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
-
-CHAT_API_KEY = GROK_API_KEY if GROK_API_KEY else OPENAI_API_KEY
-EMBEDDINGS_KEY = OPENAI_EMBEDDINGS_KEY if OPENAI_EMBEDDINGS_KEY else OPENAI_API_KEY
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -43,11 +41,11 @@ async def on_ready():
     
     print(f'{bot.user} has connected to Discord!')
     
-    if not CHAT_API_KEY:
+    if not GROK_API_KEY:
         print("ERROR: No chat API key found (GROK_API_KEY or OPENAI_API_KEY)!")
         return
     
-    if not EMBEDDINGS_KEY:
+    if not OPENAI_EMBEDDINGS_KEY:
         print("ERROR: No embeddings API key found (OPENAI_EMBEDDINGS_KEY or OPENAI_API_KEY)!")
         return
     
@@ -61,8 +59,9 @@ async def on_ready():
         neo4j_uri=NEO4J_URI,
         neo4j_username=NEO4J_USERNAME,
         neo4j_password=NEO4J_PASSWORD,
-        openai_api_key=EMBEDDINGS_KEY,
-        grok_api_key=GROK_API_KEY
+        openai_api_key=OPENAI_EMBEDDINGS_KEY,
+        grok_api_key=GROK_API_KEY,
+        grok_model=OPENAI_MODEL
     )
     
     print("Building knowledge graph (this may take several minutes)...")
@@ -72,15 +71,12 @@ async def on_ready():
     memory_system = MemorySystem()
     
     print(f"Initializing chat client...")
-    if GROK_API_KEY:
-        print(f"Using Grok API with model: {OPENAI_MODEL}")
-    else:
-        print(f"Using OpenAI API with model: {OPENAI_MODEL}")
+    print(f"Using Grok API with model: {OPENAI_MODEL}")
         
     if OPENAI_BASE_URL:
-        openai_client = OpenAI(api_key=CHAT_API_KEY, base_url=OPENAI_BASE_URL)
+        openai_client = OpenAI(api_key=GROK_API_KEY, base_url=OPENAI_BASE_URL)
     else:
-        openai_client = OpenAI(api_key=CHAT_API_KEY)
+        openai_client = OpenAI(api_key=GROK_API_KEY)
     
     print("Bot is ready!")
 
@@ -130,8 +126,8 @@ Remember details from our conversation."""
             response = openai_client.chat.completions.create(
                 model=OPENAI_MODEL,
                 messages=messages,
-                temperature=0.7,
-                max_tokens=500
+                temperature=0.6,
+                max_completion_tokens=1000,
             )
             
             answer = response.choices[0].message.content or "I couldn't generate a response."
