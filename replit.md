@@ -53,6 +53,7 @@ The system stores document chunks as nodes in Neo4j with:
 - **Efficient retrieval** using Neo4j vector index for fast similarity search
 
 ## Recent Changes
+- 2025-10-14: Suppressed Discord heartbeat warnings for cleaner log output
 - 2025-10-14: Migrated from ChromaDB to Neo4j GraphRAG architecture
 - 2025-10-14: Implemented graph-based knowledge representation with chunk nodes
 - 2025-10-14: Added sequential chunk relationships for context expansion
