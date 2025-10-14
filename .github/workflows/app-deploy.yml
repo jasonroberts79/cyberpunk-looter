@@ -35,7 +35,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install discord.py langchain neo4j neo4j-graphrag openai pypdf python-dotenv replit-object-storage
+        pip install -r requirements.txt
 
     - name: Lint with flake8
       run: |
