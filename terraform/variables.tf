@@ -30,7 +30,7 @@ variable "image_tag" {
 variable "openai_model" {
   description = "OpenAI model to use"
   type        = string
-  default     = "grok-beta"
+  default     = "grok-4-fast"
 }
 
 variable "openai_base_url" {

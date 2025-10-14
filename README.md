@@ -62,7 +62,7 @@ You can customize the bot by setting these environment variables:
 **For Grok API** (see [GROK_SETUP.md](GROK_SETUP.md)):
 - `GROK_API_KEY` - Your Grok API key from console.x.ai
 - `OPENAI_BASE_URL` - Set to `https://api.x.ai/v1` for Grok chat
-- `OPENAI_MODEL` - Chat model to use (e.g., `grok-beta` or other available Grok models)
+- `OPENAI_MODEL` - Chat model to use (e.g., `grok-4-fast` or other available Grok models)
 
 **For other providers**:
 - `OPENAI_BASE_URL` - Custom API endpoint
@@ -100,3 +100,12 @@ This project includes Infrastructure as Code (Terraform) and CI/CD (GitHub Actio
 - Always-on bot deployment (min 1 instance)
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for complete setup instructions.
+
+
+## Commands
+- `!ask <question>` - Ask a question using the knowledge graph
+- `!reindex` - Update knowledge graph (processes only new/modified files)
+- `!reindex force` - Force rebuild entire knowledge graph
+- `!clear` - Clear conversation history
+- `!memory` - View interaction summary
+- `!help_rag` - Show available commands
