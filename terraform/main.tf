@@ -179,55 +179,25 @@ resource "google_secret_manager_secret_iam_member" "neo4j_password_access" {
   member    = "serviceAccount:${google_service_account.discord_bot.email}"
 }
 
-# Cloud Run service
-resource "google_cloud_run_v2_service" "discord_bot" {
+# Cloud Run Job for Discord bot worker
+resource "google_cloud_run_v2_job" "discord_bot" {
   name     = var.service_name
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   template {
-    service_account = google_service_account.discord_bot.email
-    timeout         = "300s"
+    template {
+      service_account = google_service_account.discord_bot.email
+      max_retries     = 0
 
-    scaling {
-      min_instance_count = 1
-      max_instance_count = 1
-    }
+      containers {
+        image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
 
-    containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
-
-      ports {
-        container_port = 8080
-      }
-
-      startup_probe {
-        initial_delay_seconds = 30
-        timeout_seconds       = 10
-        period_seconds        = 10
-        failure_threshold     = 3
-        http_get {
-          path = "/health"
-          port = 8080
+        resources {
+          limits = {
+            cpu    = "1"
+            memory = "512Mi"
+          }
         }
-      }
-
-      liveness_probe {
-        timeout_seconds = 10
-        period_seconds  = 30
-        http_get {
-          path = "/health"
-          port = 8080
-        }
-      }
-
-      resources {
-        limits = {
-          cpu    = "1"
-          memory = "512Mi"
-        }
-        cpu_idle = true
-      }
 
       env {
         name  = "OPENAI_MODEL"
@@ -304,6 +274,7 @@ resource "google_cloud_run_v2_service" "discord_bot" {
           }
         }
       }
+      }
     }
   }
 
@@ -320,7 +291,7 @@ resource "google_cloud_run_v2_service" "discord_bot" {
 
   lifecycle {
     ignore_changes = [
-      template[0].containers[0].image
+      template[0].template[0].containers[0].image
     ]
   }
 }

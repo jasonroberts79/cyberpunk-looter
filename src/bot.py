@@ -1,8 +1,6 @@
 import os
 import io
 import logging
-import asyncio
-from aiohttp import web
 import discord
 from discord.ext import commands
 from openai import OpenAI
@@ -205,37 +203,11 @@ async def help_command(ctx):
     """
     await ctx.send(help_text)
 
-async def health_check(request):
-    """Health check endpoint for Cloud Run"""
-    return web.Response(text="OK", status=200)
-
-async def run_health_server():
-    """Run HTTP health check server for Cloud Run"""
-    app = web.Application()
-    app.router.add_get('/health', health_check)
-
-    port = int(os.getenv('PORT', 8080))
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
-    print(f"Health check server running on port {port}")
-
-async def main():
-    """Main function to run both Discord bot and health server"""
+if __name__ == "__main__":
     if not DISCORD_TOKEN:
         print("ERROR: DISCORD_BOT_TOKEN not found in environment variables!")
-        return
-
-    # Start health check server
-    await run_health_server()
-
-    # Start Discord bot
-    async with bot:
-        await bot.start(DISCORD_TOKEN)
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Bot stopped by user")
+    else:
+        try:
+            bot.run(DISCORD_TOKEN)
+        except KeyboardInterrupt:
+            print("Bot stopped by user")

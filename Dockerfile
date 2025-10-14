@@ -23,10 +23,6 @@ COPY knowledge_base/ ./knowledge_base/
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8080
-
-# Expose the port that Cloud Run expects
-EXPOSE 8080
 
 # Run the bot
 CMD ["python", "src/bot.py"]
