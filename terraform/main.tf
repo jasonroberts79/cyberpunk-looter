@@ -9,9 +9,8 @@ terraform {
   }
 
   backend "gcs" {
-    # Configure this in terraform/backend.tf or via CLI
-    # bucket = "your-terraform-state-bucket"
-    # prefix = "terraform/state"
+    bucket = "jr_terraform_state"
+    prefix = "cyberpunk-looter/state"
   }
 }
 
