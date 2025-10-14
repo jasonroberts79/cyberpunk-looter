@@ -31,3 +31,7 @@ outputType = "console"
 
 [objectStorage]
 defaultBucketID = "replit-objstore-482c8c81-90d4-470d-972d-efc72f89fafc"
+
+[deployment]
+deploymentTarget = "vm"
+run = ["python", "bot.py"]
