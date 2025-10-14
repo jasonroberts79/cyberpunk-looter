@@ -81,3 +81,22 @@ You can customize the bot by setting these environment variables:
 - Sequential NEXT_CHUNK relationships connect adjacent chunks for context expansion
 - Neo4j vector index enables fast similarity-based retrieval
 - Incremental indexing tracks file modifications to avoid unnecessary reprocessing
+
+## Deployment
+
+### Cloud Deployment (GCP Cloud Run)
+
+This project includes Infrastructure as Code (Terraform) and CI/CD (GitHub Actions) for deploying to Google Cloud Run.
+
+**Quick deployment steps:**
+1. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed step-by-step instructions
+2. Configure GitHub secrets for GCP authentication
+3. Push to main branch - automatic deployment via GitHub Actions
+
+**What's included:**
+- Terraform configuration for Cloud Run, Artifact Registry, and Secret Manager
+- GitHub Actions workflow for automated testing, infrastructure provisioning, and deployment
+- Dockerfile for containerization
+- Always-on bot deployment (min 1 instance)
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete setup instructions.

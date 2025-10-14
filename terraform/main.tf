@@ -1,0 +1,268 @@
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+
+  backend "gcs" {
+    # Configure this in terraform/backend.tf or via CLI
+    # bucket = "your-terraform-state-bucket"
+    # prefix = "terraform/state"
+  }
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+# Enable required APIs
+resource "google_project_service" "cloud_run_api" {
+  service            = "run.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "artifact_registry_api" {
+  service            = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "cloud_build_api" {
+  service            = "cloudbuild.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Artifact Registry repository for Docker images
+resource "google_artifact_registry_repository" "docker_repo" {
+  location      = var.region
+  repository_id = var.artifact_registry_repo
+  description   = "Docker repository for Discord bot"
+  format        = "DOCKER"
+
+  depends_on = [google_project_service.artifact_registry_api]
+}
+
+# Service account for Cloud Run
+resource "google_service_account" "discord_bot" {
+  account_id   = "discord-bot-sa"
+  display_name = "Discord Bot Service Account"
+  description  = "Service account for the Discord bot running on Cloud Run"
+}
+
+# Secret Manager for environment variables
+resource "google_secret_manager_secret" "discord_token" {
+  secret_id = "discord-bot-token"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.cloud_run_api]
+}
+
+resource "google_secret_manager_secret" "grok_api_key" {
+  secret_id = "grok-api-key"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.cloud_run_api]
+}
+
+resource "google_secret_manager_secret" "openai_embeddings_key" {
+  secret_id = "openai-embeddings-key"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.cloud_run_api]
+}
+
+resource "google_secret_manager_secret" "neo4j_uri" {
+  secret_id = "neo4j-uri"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.cloud_run_api]
+}
+
+resource "google_secret_manager_secret" "neo4j_username" {
+  secret_id = "neo4j-username"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.cloud_run_api]
+}
+
+resource "google_secret_manager_secret" "neo4j_password" {
+  secret_id = "neo4j-password"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.cloud_run_api]
+}
+
+# IAM binding for service account to access secrets
+resource "google_secret_manager_secret_iam_member" "discord_token_access" {
+  secret_id = google_secret_manager_secret.discord_token.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "grok_api_key_access" {
+  secret_id = google_secret_manager_secret.grok_api_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "openai_embeddings_key_access" {
+  secret_id = google_secret_manager_secret.openai_embeddings_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "neo4j_uri_access" {
+  secret_id = google_secret_manager_secret.neo4j_uri.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "neo4j_username_access" {
+  secret_id = google_secret_manager_secret.neo4j_username.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "neo4j_password_access" {
+  secret_id = google_secret_manager_secret.neo4j_password.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
+# Cloud Run service
+resource "google_cloud_run_v2_service" "discord_bot" {
+  name     = var.service_name
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+
+  template {
+    service_account = google_service_account.discord_bot.email
+
+    scaling {
+      min_instance_count = 1
+      max_instance_count = 1
+    }
+
+    containers {
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+        cpu_idle = true
+      }
+
+      env {
+        name  = "OPENAI_MODEL"
+        value = var.openai_model
+      }
+
+      env {
+        name  = "OPENAI_BASE_URL"
+        value = var.openai_base_url
+      }
+
+      # Secret environment variables
+      env {
+        name = "DISCORD_BOT_TOKEN"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.discord_token.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "GROK_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.grok_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "OPENAI_EMBEDDINGS_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.openai_embeddings_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "NEO4J_URI"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.neo4j_uri.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "NEO4J_USERNAME"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.neo4j_username.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "NEO4J_PASSWORD"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.neo4j_password.secret_id
+            version = "latest"
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloud_run_api,
+    google_artifact_registry_repository.docker_repo,
+    google_secret_manager_secret_iam_member.discord_token_access,
+    google_secret_manager_secret_iam_member.grok_api_key_access,
+    google_secret_manager_secret_iam_member.openai_embeddings_key_access,
+    google_secret_manager_secret_iam_member.neo4j_uri_access,
+    google_secret_manager_secret_iam_member.neo4j_username_access,
+    google_secret_manager_secret_iam_member.neo4j_password_access
+  ]
+
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image
+    ]
+  }
+}

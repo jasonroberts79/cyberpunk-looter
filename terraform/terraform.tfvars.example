@@ -1,0 +1,10 @@
+# Copy this file to terraform.tfvars and fill in your values
+# Or set these as environment variables with TF_VAR_ prefix
+
+project_id             = "your-gcp-project-id"
+region                 = "us-central1"
+service_name           = "discord-bot"
+artifact_registry_repo = "discord-bot-repo"
+image_tag              = "latest"
+openai_model           = "grok-beta"
+openai_base_url        = "https://api.x.ai/v1"
