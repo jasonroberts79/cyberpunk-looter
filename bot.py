@@ -212,7 +212,6 @@ async def health_check(request):
 async def run_health_server():
     """Run HTTP health check server for Cloud Run"""
     app = web.Application()
-    app.router.add_get('/', health_check)
     app.router.add_get('/health', health_check)
 
     port = int(os.getenv('PORT', 8080))
