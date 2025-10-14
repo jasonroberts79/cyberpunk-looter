@@ -16,10 +16,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY bot.py .
-COPY graphrag_system.py .
-COPY memory_system.py .
-COPY app_storage.py .
+COPY src/ ./src/
 
 # Create directory for knowledge base if needed
 RUN mkdir -p /app/knowledge_base
@@ -32,4 +29,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Run the bot
-CMD ["python", "bot.py"]
+CMD ["python", "src/bot.py"]

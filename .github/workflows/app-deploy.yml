@@ -49,10 +49,10 @@ jobs:
     - name: Check code structure
       run: |
         echo "Checking for required files..."
-        test -f bot.py && echo "✓ bot.py found"
-        test -f graphrag_system.py && echo "✓ graphrag_system.py found"
-        test -f memory_system.py && echo "✓ memory_system.py found"
-        test -f app_storage.py && echo "✓ app_storage.py found"
+        test -f src/bot.py && echo "✓ bot.py found"
+        test -f src/graphrag_system.py && echo "✓ graphrag_system.py found"
+        test -f src/memory_system.py && echo "✓ memory_system.py found"
+        test -f src/app_storage.py && echo "✓ app_storage.py found"
 
   deploy:
     needs: test

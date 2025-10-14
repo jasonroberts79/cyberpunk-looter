@@ -70,9 +70,9 @@ You can customize the bot by setting these environment variables:
 
 ## Architecture
 
-- **graphrag_system.py**: Handles Neo4j graph database, document ingestion, and vector search
-- **memory_system.py**: Manages short and long-term memory
-- **bot.py**: Discord bot logic and command handlers
+- **src/graphrag_system.py**: Handles Neo4j graph database, document ingestion, and vector search
+- **src/memory_system.py**: Manages short and long-term memory
+- **src/bot.py**: Discord bot logic and command handlers
 - **knowledge_base/**: Your markdown and PDF documents
 
 ### Neo4j GraphRAG Implementation
