@@ -1,5 +1,5 @@
 import os
-import asyncio
+import io
 import logging
 import discord
 from discord.ext import commands
@@ -138,13 +138,9 @@ Remember details from our conversation."""
             
             memory_system.add_to_short_term(user_id, "assistant", answer)
             
-            if len(answer) > 2000:
-                chunks = [answer[i:i+2000] for i in range(0, len(answer), 2000)]
-                for chunk in chunks:
-                    await ctx.send(chunk)
-                    await asyncio.sleep(0.5)
-            else:
-                await ctx.send(answer)
+            file = io.StringIO(answer)
+            file.name = "answer.txt"
+            await ctx.send(file=discord.File(file, filename="answer.txt"))
                 
         except Exception as e:
             await ctx.send(f"Error generating response: {str(e)}")
