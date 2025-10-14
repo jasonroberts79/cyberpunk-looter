@@ -158,6 +158,7 @@ resource "google_cloud_run_v2_service" "discord_bot" {
 
   template {
     service_account = google_service_account.discord_bot.email
+    timeout         = "300s"
 
     scaling {
       min_instance_count = 1
@@ -166,6 +167,30 @@ resource "google_cloud_run_v2_service" "discord_bot" {
 
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
+
+      ports {
+        container_port = 8080
+      }
+
+      startup_probe {
+        initial_delay_seconds = 30
+        timeout_seconds       = 10
+        period_seconds        = 10
+        failure_threshold     = 3
+        http_get {
+          path = "/health"
+          port = 8080
+        }
+      }
+
+      liveness_probe {
+        timeout_seconds = 10
+        period_seconds  = 30
+        http_get {
+          path = "/health"
+          port = 8080
+        }
+      }
 
       resources {
         limits = {
