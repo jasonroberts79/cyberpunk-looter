@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 import discord
 from discord.ext import commands
 from openai import OpenAI
@@ -9,6 +10,8 @@ from memory_system import MemorySystem
 from typing import Optional
 
 load_dotenv()
+
+logging.getLogger('discord.gateway').setLevel(logging.ERROR)
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
