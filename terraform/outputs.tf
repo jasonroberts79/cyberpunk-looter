@@ -17,3 +17,8 @@ output "service_account_email" {
   description = "Email of the service account"
   value       = google_service_account.discord_bot.email
 }
+
+output "bot_memory_bucket" {
+  description = "Name of the Cloud Storage bucket for bot memory"
+  value       = google_storage_bucket.bot_memory.name
+}

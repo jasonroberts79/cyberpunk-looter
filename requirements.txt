@@ -55,7 +55,7 @@ google-auth==2.41.1
 google-cloud-core==2.4.3
     # via google-cloud-storage
 google-cloud-storage==2.19.0
-    # via replit-object-storage
+    # via cyberpunk-looter (pyproject.toml)
 google-crc32c==1.7.1
     # via
     #   google-cloud-storage
@@ -159,15 +159,12 @@ pyyaml==6.0.3
     #   langchain
     #   langchain-core
     #   neo4j-graphrag
-replit-object-storage==1.0.2
-    # via cyberpunk-looter (pyproject.toml)
 requests==2.32.5
     # via
     #   google-api-core
     #   google-cloud-storage
     #   langchain
     #   langsmith
-    #   replit-object-storage
     #   requests-toolbelt
 requests-toolbelt==1.0.0
     # via langsmith

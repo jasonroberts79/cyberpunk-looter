@@ -52,6 +52,35 @@ resource "google_service_account" "discord_bot" {
   description  = "Service account for the Discord bot running on Cloud Run"
 }
 
+# Cloud Storage bucket for bot memory
+resource "google_storage_bucket" "bot_memory" {
+  name          = "${var.project_id}-bot-memory"
+  location      = var.region
+  force_destroy = false
+
+  uniform_bucket_level_access = true
+
+  versioning {
+    enabled = true
+  }
+
+  lifecycle_rule {
+    condition {
+      age = 90
+    }
+    action {
+      type = "Delete"
+    }
+  }
+}
+
+# IAM binding for service account to access storage bucket
+resource "google_storage_bucket_iam_member" "bot_memory_access" {
+  bucket = google_storage_bucket.bot_memory.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
 # Secret Manager for environment variables
 resource "google_secret_manager_secret" "discord_token" {
   secret_id = "discord-bot-token"
@@ -208,6 +237,11 @@ resource "google_cloud_run_v2_service" "discord_bot" {
       env {
         name  = "OPENAI_BASE_URL"
         value = var.openai_base_url
+      }
+
+      env {
+        name  = "GCS_BUCKET_NAME"
+        value = google_storage_bucket.bot_memory.name
       }
 
       # Secret environment variables

@@ -5,13 +5,13 @@ description = "Discord bot with GraphRAG using Neo4j and memory system"
 requires-python = ">=3.11"
 dependencies = [
     "discord.py>=2.4.0",
+    "google-cloud-storage>=2.19.0",
     "langchain>=0.3.27",
     "neo4j>=5.28.2",
     "neo4j-graphrag>=1.10.0",
     "openai>=2.3.0",
     "pypdf>=6.1.1",
     "python-dotenv>=1.1.1",
-    "replit-object-storage>=1.0.2",
 ]
 
 [build-system]

@@ -1,13 +1,27 @@
-from replit.object_storage import Client
+import os
+from google.cloud import storage
 
 class AppStorage:
-  def __init__(self):
-    self.client = Client()
+    def __init__(self):
+        """Initialize Google Cloud Storage client"""
+        self.client = storage.Client()
+        self.bucket_name = os.getenv("GCS_BUCKET_NAME")
 
-  def writedata(self, filname, data):
-    self.client.upload_from_text(filname, data)
+        if not self.bucket_name:
+            raise ValueError("GCS_BUCKET_NAME environment variable is not set")
 
-  def readdata(self, filname):
-    if(not self.client.exists(filname)):
-      return None
-    return self.client.download_as_text(filname)
+        self.bucket = self.client.bucket(self.bucket_name)
+
+    def writedata(self, filename, data):
+        """Write data to a blob in the GCS bucket"""
+        blob = self.bucket.blob(filename)
+        blob.upload_from_string(data)
+
+    def readdata(self, filename):
+        """Read data from a blob in the GCS bucket"""
+        blob = self.bucket.blob(filename)
+
+        if not blob.exists():
+            return None
+
+        return blob.download_as_text()
