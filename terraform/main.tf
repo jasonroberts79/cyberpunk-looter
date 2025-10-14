@@ -190,13 +190,13 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
   location     = var.region
   launch_stage = "BETA"
 
+  scaling {
+    scaling_mode          = "MANUAL"
+    manual_instance_count = 1
+  }
+
   template {
     service_account = google_service_account.discord_bot.email
-
-    scaling {
-      min_instance_count = 1
-      max_instance_count = 1
-    }
 
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
@@ -206,8 +206,6 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
           cpu    = "1"
           memory = "512Mi"
         }
-        cpu_idle         = true
-        startup_cpu_boost = true
       }
 
       env {
