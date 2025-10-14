@@ -19,7 +19,8 @@ An intelligent Discord bot that uses Graph-based Retrieval-Augmented Generation 
 1. **GraphRAG System** (`graphrag_system.py`): Builds knowledge graph, handles embedding, and graph-based retrieval
 2. **Memory System** (`memory_system.py`): Manages short-term and long-term memory
 3. **Discord Bot** (`bot.py`): Main bot logic and command handlers
-4. **Knowledge Base** (`knowledge_base/`): Directory containing markdown and PDF documents
+4. **Object Storage** (`object_storage.py`): Handles persistent storage with fallback to local files
+5. **Knowledge Base** (`knowledge_base/`): Directory containing markdown and PDF documents
 
 ### Tech Stack
 - Python 3.11
@@ -46,8 +47,14 @@ An intelligent Discord bot that uses Graph-based Retrieval-Augmented Generation 
    - `OPENAI_BASE_URL` - API base URL (optional, defaults to OpenAI, set to https://api.x.ai/v1 for Grok chat)
    - `OPENAI_MODEL` - Chat LLM model name (optional, defaults to gpt-4, can use grok-beta or other models)
    - `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` - Neo4j AuraDB credentials
-2. Add markdown (.md) or PDF (.pdf) files to `knowledge_base/` directory
-3. Run `python bot.py`
+   - `STORAGE_BUCKET_NAME` - Replit App Storage bucket name (optional, defaults to "appdata")
+2. (Optional) Create an App Storage bucket in Replit:
+   - Open "App Storage" tool from the left sidebar
+   - Create a new bucket (e.g., "appdata")
+   - Bot will automatically use it for persistent JSON storage
+   - If not available, falls back to local `.storage/` directory
+3. Add markdown (.md) or PDF (.pdf) files to `knowledge_base/` directory
+4. Run `python bot.py`
 
 ## GraphRAG Implementation
 The system stores document chunks as nodes in Neo4j with:
@@ -63,6 +70,9 @@ The current implementation uses:
 - Incremental indexing that tracks file modifications and only processes changed files
 
 ## Recent Changes
+- 2025-10-14: Integrated Replit App Storage for persistent JSON files (knowledge tracking, long-term memory)
+- 2025-10-14: Implemented graceful fallback to local `.storage/` directory when App Storage unavailable
+- 2025-10-14: Updated memory_system.py and graphrag_system.py to use object storage wrapper
 - 2025-10-14: Implemented incremental indexing (tracks file changes, skips unchanged files on startup)
 - 2025-10-14: Aligned documentation with actual implementation (removed inflated feature claims)
 - 2025-10-14: Removed deprecated rag_system.py (ChromaDB version)
