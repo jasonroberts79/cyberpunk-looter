@@ -40,7 +40,8 @@ An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation
 ## Discord Commands
 
 - `!ask <question>` - Ask a question using the knowledge base
-- `!reindex` - Reload and reindex the knowledge base
+- `!reindex` - Update knowledge graph (processes only new/modified files)
+- `!reindex force` - Force rebuild entire knowledge graph
 - `!clear` - Clear your conversation history
 - `!memory` - View your interaction summary
 - `!help_rag` - Show available commands
@@ -79,3 +80,4 @@ You can customize the bot by setting these environment variables:
 - Each chunk has vector embeddings for similarity search
 - Sequential NEXT_CHUNK relationships connect adjacent chunks for context expansion
 - Neo4j vector index enables fast similarity-based retrieval
+- Incremental indexing tracks file modifications to avoid unnecessary reprocessing

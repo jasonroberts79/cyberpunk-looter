@@ -32,7 +32,8 @@ An intelligent Discord bot that uses Graph-based Retrieval-Augmented Generation 
 
 ## Commands
 - `!ask <question>` - Ask a question using the knowledge graph
-- `!reindex` - Rebuild the knowledge graph from documents
+- `!reindex` - Update knowledge graph (processes only new/modified files)
+- `!reindex force` - Force rebuild entire knowledge graph
 - `!clear` - Clear conversation history
 - `!memory` - View interaction summary
 - `!help_rag` - Show available commands
@@ -59,8 +60,10 @@ The current implementation uses:
 - Vector similarity search to find relevant chunks (k=10 by default)
 - NEXT_CHUNK relationships to expand context with sequential chunks
 - Neo4j VectorRetriever for efficient graph-based retrieval
+- Incremental indexing that tracks file modifications and only processes changed files
 
 ## Recent Changes
+- 2025-10-14: Implemented incremental indexing (tracks file changes, skips unchanged files on startup)
 - 2025-10-14: Aligned documentation with actual implementation (removed inflated feature claims)
 - 2025-10-14: Removed deprecated rag_system.py (ChromaDB version)
 - 2025-10-14: Updated help command and documentation to accurately describe capabilities

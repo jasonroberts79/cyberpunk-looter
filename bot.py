@@ -147,16 +147,22 @@ Be conversational, helpful, and remember details from our conversation."""
             await ctx.send(f"Error generating response: {str(e)}")
             print(f"Error: {e}")
 
-@bot.command(name="reindex", help="Rebuild the knowledge graph")
-async def reindex(ctx):
+@bot.command(name="reindex", help="Rebuild the knowledge graph (use 'force' to rebuild all files)")
+async def reindex(ctx, *, mode: str = ""):
     if not graphrag_system:
         await ctx.send("GraphRAG system not initialized.")
         return
     
+    force_rebuild = mode.strip().lower() == "force"
+    
     async with ctx.typing():
-        await ctx.send("Rebuilding knowledge graph... This may take several minutes.")
-        await graphrag_system.build_knowledge_graph()
-        await ctx.send("Knowledge graph rebuilt successfully!")
+        if force_rebuild:
+            await ctx.send("Force rebuilding knowledge graph... This will reprocess all files.")
+        else:
+            await ctx.send("Updating knowledge graph... Only processing new/modified files.")
+        
+        await graphrag_system.build_knowledge_graph(force_rebuild=force_rebuild)
+        await ctx.send("Knowledge graph updated successfully!")
 
 @bot.command(name="clear", help="Clear your conversation history")
 async def clear_memory(ctx):
@@ -184,7 +190,8 @@ async def help_command(ctx):
 **Available Commands:**
 
 `!ask <question>` - Ask a question using the knowledge graph
-`!reindex` - Rebuild the knowledge graph from documents
+`!reindex` - Update knowledge graph (processes only new/modified files)
+`!reindex force` - Force rebuild entire knowledge graph
 `!clear` - Clear your conversation history
 `!memory` - View your interaction summary
 `!help_rag` - Show this help message
@@ -197,6 +204,7 @@ async def help_command(ctx):
 - Sequential chunk relationships for context expansion
 - Neo4j graph database for efficient retrieval
 - Conversation memory and user preference tracking
+- Incremental indexing (skips unchanged files)
     """
     await ctx.send(help_text)
 
