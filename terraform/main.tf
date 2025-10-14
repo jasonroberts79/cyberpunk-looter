@@ -35,6 +35,11 @@ resource "google_project_service" "cloud_build_api" {
   disable_on_destroy = false
 }
 
+  resource "google_project_service" "secret_manager_api" {
+    service            = "secretmanager.googleapis.com"
+    disable_on_destroy = false
+  }
+
 # Artifact Registry repository for Docker images
 resource "google_artifact_registry_repository" "docker_repo" {
   location      = var.region
@@ -89,7 +94,7 @@ resource "google_secret_manager_secret" "discord_token" {
     auto {}
   }
 
-  depends_on = [google_project_service.cloud_run_api]
+  depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
 resource "google_secret_manager_secret" "grok_api_key" {
@@ -99,7 +104,7 @@ resource "google_secret_manager_secret" "grok_api_key" {
     auto {}
   }
 
-  depends_on = [google_project_service.cloud_run_api]
+  depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
 resource "google_secret_manager_secret" "openai_embeddings_key" {
@@ -109,7 +114,7 @@ resource "google_secret_manager_secret" "openai_embeddings_key" {
     auto {}
   }
 
-  depends_on = [google_project_service.cloud_run_api]
+  depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
 resource "google_secret_manager_secret" "neo4j_uri" {
@@ -119,7 +124,7 @@ resource "google_secret_manager_secret" "neo4j_uri" {
     auto {}
   }
 
-  depends_on = [google_project_service.cloud_run_api]
+  depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
 resource "google_secret_manager_secret" "neo4j_username" {
@@ -129,7 +134,7 @@ resource "google_secret_manager_secret" "neo4j_username" {
     auto {}
   }
 
-  depends_on = [google_project_service.cloud_run_api]
+  depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
 resource "google_secret_manager_secret" "neo4j_password" {
@@ -139,7 +144,7 @@ resource "google_secret_manager_secret" "neo4j_password" {
     auto {}
   }
 
-  depends_on = [google_project_service.cloud_run_api]
+  depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
 # IAM binding for service account to access secrets
