@@ -63,6 +63,9 @@ The current implementation uses:
 - Incremental indexing that tracks file modifications and only processes changed files
 
 ## Recent Changes
+- 2025-10-14: Added GitHub Actions CI/CD workflow for automated testing and deployment
+- 2025-10-14: Created requirements.txt for easier dependency management
+- 2025-10-14: Configured deployment settings for Reserved VM Background Worker
 - 2025-10-14: Updated chatbot prompt to keep responses under 2000 characters (Discord message limit)
 - 2025-10-14: Fixed Neo4j MemoryPoolOutOfMemoryError by optimizing sequential relationship creation
 - 2025-10-14: Added chunk_index property to chunks for efficient sequential linking

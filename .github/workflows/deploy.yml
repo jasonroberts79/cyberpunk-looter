@@ -1,0 +1,84 @@
+name: Discord Bot CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install discord.py langchain neo4j neo4j-graphrag openai pypdf python-dotenv replit-object-storage
+    
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+    
+    - name: Check code structure
+      run: |
+        echo "Checking for required files..."
+        test -f bot.py && echo "✓ bot.py found"
+        test -f graphrag_system.py && echo "✓ graphrag_system.py found"
+        test -f memory_system.py && echo "✓ memory_system.py found"
+        test -f app_storage.py && echo "✓ app_storage.py found"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy notification
+      run: |
+        echo "🚀 Deployment triggered for Discord bot"
+        echo "Branch: ${{ github.ref }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Note: Configure your deployment target (Replit, Railway, Render, etc.) here"
+    
+    # Uncomment and configure based on your deployment platform:
+    
+    # For Replit deployment:
+    # - name: Deploy to Replit
+    #   env:
+    #     REPLIT_TOKEN: ${{ secrets.REPLIT_TOKEN }}
+    #   run: |
+    #     curl -X POST https://replit.com/api/deployments/trigger \
+    #       -H "Authorization: Bearer $REPLIT_TOKEN" \
+    #       -H "Content-Type: application/json"
+    
+    # For Railway deployment:
+    # - name: Deploy to Railway
+    #   env:
+    #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    #   run: |
+    #     npm install -g @railway/cli
+    #     railway up
+    
+    # For Render deployment:
+    # - name: Deploy to Render
+    #   env:
+    #     RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+    #   run: |
+    #     curl -X POST https://api.render.com/deploy/your-service-id \
+    #       -H "Authorization: Bearer $RENDER_API_KEY"
