@@ -2,8 +2,7 @@ import os
 import json
 import tempfile
 from pathlib import Path
-from google.cloud import storage
-from google.auth import identity_pool
+from replit.object_storage import Client
 from typing import Optional
 
 REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106"
