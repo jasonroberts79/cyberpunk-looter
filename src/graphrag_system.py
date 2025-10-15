@@ -28,6 +28,7 @@ class GraphRAGSystem:
             neo4j_uri,
             auth=(neo4j_username, neo4j_password)
         )
+        self.driver.verify_connectivity()
         
         print(f"Initializing OpenAI embeddings: {embedding_model}")
         self.embedder = OpenAIEmbeddings(
