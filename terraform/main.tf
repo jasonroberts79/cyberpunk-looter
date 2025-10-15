@@ -205,6 +205,14 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
   template {
     service_account = google_service_account.discord_bot.email
 
+    vpc_access {
+      egress = "ALL_TRAFFIC"
+      network_interfaces {
+        network = "default"
+        subnet = "default"
+      }
+    }
+
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
 
@@ -212,14 +220,6 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
         limits = {
           cpu    = "1"
           memory = "512Mi"
-        }
-      }
-
-      vpc_access {
-        egress = "ALL_TRAFFIC"
-        network_interfaces {
-          network = "default"
-          subnet = "default"
         }
       }
 
