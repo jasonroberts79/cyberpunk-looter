@@ -1,34 +1,25 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies and uv
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
-    gcc \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && rm -rf /var/lib/apt/lists/*
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-# Add uv to PATH
-ENV PATH="/root/.local/bin:$PATH"
-
-# Copy dependency files for better layer caching
 COPY pyproject.toml uv.lock ./
 
-# Install Python dependencies using uv
-RUN uv sync --frozen --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
 
-# Copy application code
-COPY src/ ./src/
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
 
-# Copy knowledge base files
-COPY knowledge_base/ ./knowledge_base/
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Run the bot using uv
 CMD ["uv", "run", "src/bot.py"]

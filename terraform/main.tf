@@ -221,6 +221,8 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
           cpu    = "1"
           memory = "512Mi"
         }
+        cpu_idle = false
+        startup_cpu_boost = true
       }
 
       env {
