@@ -209,7 +209,7 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
       egress = "ALL_TRAFFIC"
       network_interfaces {
         network = "default"
-        subnet = "default"
+        subnetwork = "default"
       }
     }
 
