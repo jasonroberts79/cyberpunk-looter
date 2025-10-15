@@ -1,5 +1,5 @@
-import os
 import json
+import aiofiles
 from pathlib import Path
 from typing import List, Dict, Optional, Set
 from neo4j import GraphDatabase
@@ -28,6 +28,7 @@ class GraphRAGSystem:
             neo4j_uri,
             auth=(neo4j_username, neo4j_password)
         )
+        
         self.driver.verify_connectivity()
         
         print(f"Initializing OpenAI embeddings: {embedding_model}")
@@ -41,7 +42,7 @@ class GraphRAGSystem:
             api_key=grok_api_key,
             base_url="https://api.x.ai/v1",
             model_name=grok_model,
-            model_params={"temperature": 0.7}
+            model_params={"temperature": 0.6}
         )
         
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -252,8 +253,8 @@ class GraphRAGSystem:
             
             elif file.suffix == '.md':
                 try:
-                    with open(file, 'r', encoding='utf-8') as f:
-                        content = f.read()
+                    async with aiofiles.open(file, 'r', encoding='utf-8') as f:
+                        content = await f.read()
                         doc = Document(
                             page_content=content,
                             metadata={"source": str(file), "filename": file.name, "type": "markdown"}

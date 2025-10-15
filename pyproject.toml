@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Discord bot with GraphRAG using Neo4j and memory system"
 requires-python = ">=3.11"
 dependencies = [
+    "aiofiles>=24.1.0",
     "discord.py>=2.4.0",
     "google-cloud-storage>=2.19.0",
     "langchain>=0.3.27",

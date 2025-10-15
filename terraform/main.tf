@@ -86,6 +86,13 @@ resource "google_storage_bucket_iam_member" "bot_memory_access" {
   member = "serviceAccount:${google_service_account.discord_bot.email}"
 }
 
+# IAM binding for compute.networkUser role
+resource "google_project_iam_member" "discord_bot_network_user" {
+  project = var.project_id
+  role    = "roles/compute.networkUser"
+  member  = "serviceAccount:${google_service_account.discord_bot.email}"
+}
+
 # Secret Manager for environment variables
 resource "google_secret_manager_secret" "discord_token" {
   secret_id = "discord-bot-token"

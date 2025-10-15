@@ -41,20 +41,20 @@ async def on_ready():
     
     print(f'{bot.user} has connected to Discord!')
     
-    if not GROK_API_KEY:
-        print("ERROR: No chat API key found (GROK_API_KEY or OPENAI_API_KEY)!")
+    if not all([GROK_API_KEY, OPENAI_BASE_URL]):
+        print("ERROR: Chat API key or URL missing (GROK_API_KEY or OPENAI_BASE_URL)!")
         return
     
     if not OPENAI_EMBEDDINGS_KEY:
-        print("ERROR: No embeddings API key found (OPENAI_EMBEDDINGS_KEY or OPENAI_API_KEY)!")
+        print("ERROR: No embeddings API key found (OPENAI_EMBEDDINGS_KEY)!")
         return
-    
+
     if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD]):
         print("ERROR: Neo4j credentials not found (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)!")
         return
     
     print("Initializing GraphRAG system...")
-    print(f"Using Neo4j GraphRAG with OpenAI embeddings")
+    print("Using Neo4j GraphRAG with OpenAI embeddings")
     graphrag_system = GraphRAGSystem(
         neo4j_uri=NEO4J_URI,
         neo4j_username=NEO4J_USERNAME,
@@ -70,13 +70,10 @@ async def on_ready():
     print("Initializing memory system...")
     memory_system = MemorySystem()
     
-    print(f"Initializing chat client...")
+    print("Initializing chat client...")
     print(f"Using Grok API with model: {OPENAI_MODEL}")
         
-    if OPENAI_BASE_URL:
-        openai_client = OpenAI(api_key=GROK_API_KEY, base_url=OPENAI_BASE_URL)
-    else:
-        openai_client = OpenAI(api_key=GROK_API_KEY)
+    openai_client = OpenAI(api_key=GROK_API_KEY, base_url=OPENAI_BASE_URL)
     
     print("Bot is ready!")
 
