@@ -6,8 +6,9 @@ WORKDIR /app
 
 # Install system dependencies and uv
 RUN apt-get update && apt-get install -y \
-    gcc \
+    ca-certificates \
     curl \
+    gcc \
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && rm -rf /var/lib/apt/lists/*
 
