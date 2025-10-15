@@ -215,6 +215,14 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
         }
       }
 
+      vpc_access {
+        egress = "ALL_TRAFFIC"
+        network_interfaces {
+          network = "default"
+          subnet = "default"
+        }
+      }
+
       env {
         name  = "OPENAI_MODEL"
         value = var.openai_model

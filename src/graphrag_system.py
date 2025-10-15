@@ -14,7 +14,7 @@ from app_storage import AppStorage
 
 class GraphRAGSystem:
     def __init__(
-        self, 
+        self,
         neo4j_uri: str,
         neo4j_username: str,
         neo4j_password: str,
@@ -23,6 +23,9 @@ class GraphRAGSystem:
         grok_model: str = "grok-4-fast",
         embedding_model: str = "text-embedding-3-small"
     ):
+        # Mask password for logging (show first 2 and last 2 characters)
+        masked_password = neo4j_password[:2] + "*" * (len(neo4j_password) - 4) + neo4j_password[-2:] if len(neo4j_password) > 4 else "***"
+        print(f"Neo4j credentials - Username: {neo4j_username}, Password: {masked_password}")
         print(f"Connecting to Neo4j at {neo4j_uri}")
         self.driver = GraphDatabase.driver(
             neo4j_uri,

@@ -1,5 +1,7 @@
 import os
 import io
+import sys
+import socket
 import logging
 import discord
 from discord.ext import commands
@@ -12,6 +14,19 @@ from typing import Optional
 load_dotenv()
 
 logging.getLogger('discord.gateway').setLevel(logging.ERROR)
+
+def check_internet_connectivity():
+    """Check internet connectivity by attempting to connect to google.com"""
+    print("Checking internet connectivity...")
+    try:
+        # Try to connect to google.com on port 80
+        socket.create_connection(("google.com", 80), timeout=5)
+        print("✓ Internet connectivity verified")
+        return True
+    except (socket.timeout, socket.error) as e:
+        print(f"✗ No internet connection detected: {e}")
+        print("ERROR: Bot requires internet access to function. Exiting...")
+        return False
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
@@ -201,10 +216,15 @@ async def help_command(ctx):
     await ctx.send(help_text)
 
 if __name__ == "__main__":
+    # Check internet connectivity first
+    if not check_internet_connectivity():
+        sys.exit(1)
+
     if not DISCORD_TOKEN:
         print("ERROR: DISCORD_BOT_TOKEN not found in environment variables!")
-    else:
-        try:
-            bot.run(DISCORD_TOKEN)
-        except KeyboardInterrupt:
-            print("Bot stopped by user")
+        sys.exit(1)
+
+    try:
+        bot.run(DISCORD_TOKEN)
+    except KeyboardInterrupt:
+        print("Bot stopped by user")
