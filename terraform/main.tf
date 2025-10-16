@@ -35,10 +35,10 @@ resource "google_project_service" "cloud_build_api" {
   disable_on_destroy = false
 }
 
-  resource "google_project_service" "secret_manager_api" {
-    service            = "secretmanager.googleapis.com"
-    disable_on_destroy = false
-  }
+resource "google_project_service" "secret_manager_api" {
+  service            = "secretmanager.googleapis.com"
+  disable_on_destroy = false
+}
 
 # Artifact Registry repository for Docker images
 resource "google_artifact_registry_repository" "docker_repo" {
@@ -208,7 +208,7 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
     vpc_access {
       egress = "ALL_TRAFFIC"
       network_interfaces {
-        network = "default"
+        network    = "default"
         subnetwork = "default"
       }
     }
