@@ -3,8 +3,8 @@
 import pytest
 import hashlib
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch, mock_open, AsyncMock
-from neo4j.exceptions import ServiceUnavailable, SessionExpired, TransientError
+from unittest.mock import Mock, patch, mock_open, AsyncMock
+from neo4j.exceptions import ServiceUnavailable
 from langchain.schema import Document
 
 import sys

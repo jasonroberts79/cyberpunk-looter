@@ -1,8 +1,7 @@
 """Unit tests for Neo4j connection resilience."""
 
 import pytest
-import time
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 from neo4j.exceptions import ServiceUnavailable, SessionExpired, TransientError
 
 import sys
