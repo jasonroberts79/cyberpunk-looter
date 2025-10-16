@@ -16,6 +16,8 @@ from langchain.schema import Document
 from app_storage import AppStorage
 
 class GraphRAGSystem:
+    NO_DATA_MESSAGE = "No relevant information found in the knowledge base."
+
     def __init__(
         self,
         neo4j_uri: str,
@@ -208,16 +210,16 @@ class GraphRAGSystem:
     def load_markdown_files(self, directory: str = "knowledge_base") -> List[Document]:
         documents = []
         knowledge_path = Path(directory)
-        
+
         if not knowledge_path.exists():
             return documents
-        
+
         markdown_files = list(knowledge_path.glob("**/*.md"))
-        
+
         if not markdown_files:
             print(f"No markdown files found in '{directory}'")
             return documents
-        
+
         for md_file in markdown_files:
             try:
                 with open(md_file, 'r', encoding='utf-8') as f:
@@ -230,126 +232,119 @@ class GraphRAGSystem:
                     print(f"Loaded: {md_file.name}")
             except Exception as e:
                 print(f"Error loading {md_file}: {e}")
-        
-        return documents
-    
-    async def build_knowledge_graph(self, directory: str = "knowledge_base", force_rebuild: bool = False):
-        print("Checking for new or modified files...")
-        knowledge_path = Path(directory)
-        
-        if not knowledge_path.exists():
-            print(f"Knowledge base directory '{directory}' not found.")
-            return
-        
-        all_files = list(knowledge_path.glob("**/*.pdf")) + list(knowledge_path.glob("**/*.md"))
-        
-        current_file_paths = {str(f) for f in all_files}
-        tracked_file_paths = set(self.processed_files.keys())
-        
-        deleted_files = tracked_file_paths - current_file_paths
-        if deleted_files:
-            print(f"Removing {len(deleted_files)} deleted file(s) from knowledge graph...")
-            for deleted_path in deleted_files:
-                def delete_chunks():
-                    with self.driver.session() as session:
-                        session.run(
-                            "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
-                            source=deleted_path
-                        )
 
-                self._execute_with_retry(delete_chunks, f"Delete chunks for {Path(deleted_path).name}")
-                del self.processed_files[deleted_path]
-                print(f"Removed: {Path(deleted_path).name}")
-            self._save_tracking()
-        
-        if not all_files:
-            print("No files found in knowledge base.")
+        return documents
+
+    def _remove_deleted_files(self, current_file_paths: Set[str]):
+        """Remove chunks from Neo4j for files that no longer exist."""
+        tracked_file_paths = set(self.processed_files.keys())
+        deleted_files = tracked_file_paths - current_file_paths
+
+        if not deleted_files:
             return
-        
+
+        print(f"Removing {len(deleted_files)} deleted file(s) from knowledge graph...")
+        for deleted_path in deleted_files:
+            def delete_chunks(source=deleted_path):
+                with self.driver.session() as session:
+                    session.run(
+                        "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
+                        source=source
+                    )
+
+            self._execute_with_retry(delete_chunks, f"Delete chunks for {Path(deleted_path).name}")
+            del self.processed_files[deleted_path]
+            print(f"Removed: {Path(deleted_path).name}")
+
+        self._save_tracking()
+
+    def _categorize_files(self, all_files: List[Path], force_rebuild: bool) -> tuple[List[Path], List[Path]]:
+        """Categorize files into those needing processing and those unchanged."""
         files_to_process = []
         unchanged_files = []
-        
+
         for file in all_files:
             if force_rebuild or self._file_needs_processing(file):
                 files_to_process.append(file)
             else:
                 unchanged_files.append(file)
-        
+
         if unchanged_files:
             print(f"Skipping {len(unchanged_files)} unchanged file(s)")
-        
-        if not files_to_process:
-            print("All files already processed. Knowledge graph is up to date!")
-            if not self.retriever:
-                print("Initializing retriever...")
-                self.retriever = VectorRetriever(
-                    driver=self.driver,
-                    index_name=self.vector_index_name,
-                    embedder=self.embedder
-                )
-                self.rag = GraphRAG(
-                    retriever=self.retriever,
-                    llm=self.llm
-                )
-            return
-        
-        print(f"Processing {len(files_to_process)} new/modified file(s)...")
-        
+
+        return files_to_process, unchanged_files
+
+    async def _load_documents_from_files(self, files_to_process: List[Path]) -> List[Document]:
+        """Load documents from PDF and Markdown files."""
         documents = []
+
         for file in files_to_process:
             if file.suffix == '.pdf':
-                try:
-                    reader = PdfReader(file)
-                    text_content = []
-                    for page in reader.pages:
-                        text = page.extract_text()
-                        if text and text.strip():
-                            text_content.append(text)
-                    if text_content:
-                        doc = Document(
-                            page_content="\n\n".join(text_content),
-                            metadata={"source": str(file), "filename": file.name, "type": "pdf", "pages": len(reader.pages)}
-                        )
-                        documents.append(doc)
-                        print(f"Loaded: {file.name} ({len(reader.pages)} pages)")
-                except Exception as e:
-                    print(f"Error loading {file}: {e}")
-            
+                doc = await self._load_pdf_document(file)
+                if doc:
+                    documents.append(doc)
             elif file.suffix == '.md':
-                try:
-                    async with aiofiles.open(file, 'r', encoding='utf-8') as f:
-                        content = await f.read()
-                        doc = Document(
-                            page_content=content,
-                            metadata={"source": str(file), "filename": file.name, "type": "markdown"}
-                        )
-                        documents.append(doc)
-                        print(f"Loaded: {file.name}")
-                except Exception as e:
-                    print(f"Error loading {file}: {e}")
-        
-        if not documents:
-            print("No valid documents to process.")
-            return
-        
-        print(f"Splitting {len(documents)} document(s) into chunks...")
-        splits = self.text_splitter.split_documents(documents)
-        print(f"Created {len(splits)} chunks")
-        
+                doc = await self._load_markdown_document(file)
+                if doc:
+                    documents.append(doc)
+
+        return documents
+
+    def _load_pdf_document(self, file: Path) -> Optional[Document]:
+        """Load a single PDF document."""
+        try:
+            reader = PdfReader(file)
+            text_content = []
+            for page in reader.pages:
+                text = page.extract_text()
+                if text and text.strip():
+                    text_content.append(text)
+
+            if text_content:
+                doc = Document(
+                    page_content="\n\n".join(text_content),
+                    metadata={"source": str(file), "filename": file.name, "type": "pdf", "pages": len(reader.pages)}
+                )
+                print(f"Loaded: {file.name} ({len(reader.pages)} pages)")
+                return doc
+        except Exception as e:
+            print(f"Error loading {file}: {e}")
+        return None
+
+    async def _load_markdown_document(self, file: Path) -> Optional[Document]:
+        """Load a single Markdown document."""
+        try:
+            async with aiofiles.open(file, 'r', encoding='utf-8') as f:
+                content = await f.read()
+                doc = Document(
+                    page_content=content,
+                    metadata={"source": str(file), "filename": file.name, "type": "markdown"}
+                )
+                print(f"Loaded: {file.name}")
+                return doc
+        except Exception as e:
+            print(f"Error loading {file}: {e}")
+        return None
+
+    def _remove_old_chunks(self, files_to_process: List[Path]):
+        """Remove old chunks from Neo4j for files being reprocessed."""
         print("Removing old chunks for modified files...")
         for file in files_to_process:
-            def remove_old_chunks():
+            def remove_old_chunks(source=str(file)):
                 with self.driver.session() as session:
                     session.run(
                         "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
-                        source=str(file)
+                        source=source
                     )
 
             self._execute_with_retry(remove_old_chunks, f"Remove old chunks for {file.name}")
-        
+
+    def _create_chunk_nodes(self, splits: List[Document]) -> int:
+        """Create chunk nodes in Neo4j with embeddings."""
         print("Creating new chunk nodes with embeddings...")
         chunk_count = 0
         batch_size = 10
+
         for i in range(0, len(splits), batch_size):
             batch = splits[i:i+batch_size]
 
@@ -357,7 +352,7 @@ class GraphRAGSystem:
                 try:
                     embedding = self.embedder.embed_query(chunk.page_content)
 
-                    def create_chunk_node():
+                    def create_chunk_node(chunk_param=chunk, embedding_param=embedding, idx_param=idx):
                         with self.driver.session() as session:
                             session.run(
                                 """
@@ -369,11 +364,11 @@ class GraphRAGSystem:
                                     chunk_index: $chunk_index
                                 })
                                 """,
-                                text=chunk.page_content,
-                                source=chunk.metadata.get("source", "unknown"),
-                                filename=chunk.metadata.get("filename", "unknown"),
-                                embedding=embedding,
-                                chunk_index=idx
+                                text=chunk_param.page_content,
+                                source=chunk_param.metadata.get("source", "unknown"),
+                                filename=chunk_param.metadata.get("filename", "unknown"),
+                                embedding=embedding_param,
+                                chunk_index=idx_param
                             )
 
                     self._execute_with_retry(create_chunk_node, f"Create chunk {idx}")
@@ -383,12 +378,15 @@ class GraphRAGSystem:
                 except Exception as e:
                     print(f"Error processing chunk: {e}")
                     continue
-        
+
         print(f"Created {chunk_count} chunk nodes in Neo4j")
-        
+        return chunk_count
+
+    def _create_sequential_relationships(self, files_to_process: List[Path]):
+        """Create sequential relationships between chunks."""
         print("Updating sequential relationships...")
         for file in files_to_process:
-            def create_relationships():
+            def create_relationships(source=str(file)):
                 with self.driver.session() as session:
                     session.run(
                         """
@@ -397,32 +395,89 @@ class GraphRAGSystem:
                         WHERE c2.chunk_index = c1.chunk_index + 1
                         MERGE (c1)-[:NEXT_CHUNK]->(c2)
                         """,
-                        source=str(file)
+                        source=source
                     )
 
             self._execute_with_retry(create_relationships, f"Create relationships for {file.name}")
-        
-        print("Ensuring vector index exists...")
-        self._create_vector_index()
-        
-        print("Marking files as processed...")
-        for file in files_to_process:
-            self._mark_file_processed(file)
-        self._save_tracking()
-        
+
+    def _initialize_retriever(self):
+        """Initialize the retriever and RAG components."""
         print("Initializing retriever...")
         self.retriever = VectorRetriever(
             driver=self.driver,
             index_name=self.vector_index_name,
             embedder=self.embedder
         )
-        
+
         print("Initializing GraphRAG pipeline...")
         self.rag = GraphRAG(
             retriever=self.retriever,
             llm=self.llm
         )
-        
+
+    async def build_knowledge_graph(self, directory: str = "knowledge_base", force_rebuild: bool = False):
+        """Build or update the knowledge graph from documents in the specified directory."""
+        print("Checking for new or modified files...")
+        knowledge_path = Path(directory)
+
+        if not knowledge_path.exists():
+            print(f"Knowledge base directory '{directory}' not found.")
+            return
+
+        # Gather all PDF and Markdown files
+        all_files = list(knowledge_path.glob("**/*.pdf")) + list(knowledge_path.glob("**/*.md"))
+        current_file_paths = {str(f) for f in all_files}
+
+        # Remove chunks for deleted files
+        self._remove_deleted_files(current_file_paths)
+
+        if not all_files:
+            print("No files found in knowledge base.")
+            return
+
+        # Categorize files into those needing processing and those unchanged
+        files_to_process, _ = self._categorize_files(all_files, force_rebuild)
+
+        # If no files need processing, ensure retriever is initialized and exit
+        if not files_to_process:
+            print("All files already processed. Knowledge graph is up to date!")
+            if not self.retriever:
+                self._initialize_retriever()
+            return
+
+        # Load documents from files
+        print(f"Processing {len(files_to_process)} new/modified file(s)...")
+        documents = await self._load_documents_from_files(files_to_process)
+
+        if not documents:
+            print("No valid documents to process.")
+            return
+
+        # Split documents into chunks
+        print(f"Splitting {len(documents)} document(s) into chunks...")
+        splits = self.text_splitter.split_documents(documents)
+        print(f"Created {len(splits)} chunks")
+
+        # Remove old chunks and create new ones
+        self._remove_old_chunks(files_to_process)
+        self._create_chunk_nodes(splits)
+
+        # Create sequential relationships between chunks
+        self._create_sequential_relationships(files_to_process)
+
+        # Ensure vector index exists
+        print("Ensuring vector index exists...")
+        self._create_vector_index()
+
+        # Mark files as processed
+        print("Marking files as processed...")
+        for file in files_to_process:
+            self._mark_file_processed(file)
+        self._save_tracking()
+
+        # Initialize retriever and RAG pipeline
+        self._initialize_retriever()
+
         print("GraphRAG system ready!")
     
     def _create_vector_index(self):
@@ -471,7 +526,7 @@ class GraphRAGSystem:
     
     def get_context_for_query(self, query: str, k: int = 10) -> str:
         if not self.retriever:
-            return "No relevant information found in the knowledge base."
+            return self.NO_DATA_MESSAGE
 
         try:
             query_vector = self.embedder.embed_query(query)
@@ -510,12 +565,12 @@ class GraphRAGSystem:
                     if context_parts:
                         return "\n".join(context_parts)
                     else:
-                        return "No relevant information found in the knowledge base."
+                        return self.NO_DATA_MESSAGE
 
             return self._execute_with_retry(query_context, "Query context")
         except Exception as e:
             print(f"Context retrieval error: {e}")
-            return "No relevant information found in the knowledge base."
+            return self.NO_DATA_MESSAGE
     
     def close(self):
         if self.driver:
