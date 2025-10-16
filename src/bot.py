@@ -37,8 +37,8 @@ GROK_API_KEY = os.getenv("GROK_API_KEY")
 OPENAI_EMBEDDINGS_KEY = os.getenv("OPENAI_EMBEDDINGS_KEY")
 
 NEO4J_URI = os.getenv("NEO4J_URI")
-NEO4J_USERNAME = os.getenv("NEO4J_USERNAME")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+NEO4J_USERNAME = os.getenv("NEO4J_USERNAME").strip()
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD").strip()
 
 intents = discord.Intents.default()
 intents.message_content = True
