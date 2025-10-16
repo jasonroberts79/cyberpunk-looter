@@ -8,7 +8,8 @@ from neo4j.exceptions import ServiceUnavailable, SessionExpired, TransientError
 from langchain.schema import Document
 
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from graphrag_system import GraphRAGSystem
 
@@ -16,10 +17,10 @@ from graphrag_system import GraphRAGSystem
 class TestGraphRAGSystemInit:
     """Test GraphRAGSystem initialization."""
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_init_success(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test successful initialization of GraphRAGSystem."""
         mock_driver = Mock()
@@ -33,7 +34,7 @@ class TestGraphRAGSystemInit:
             neo4j_username="neo4j",
             neo4j_password="password",
             openai_api_key="test-key",
-            grok_api_key="grok-key"
+            grok_api_key="grok-key",
         )
 
         assert system.driver is not None
@@ -42,11 +43,13 @@ class TestGraphRAGSystemInit:
         assert system.neo4j_password == "password"
         mock_driver.verify_connectivity.assert_called_once()
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
-    def test_init_with_custom_retry_params(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
+    def test_init_with_custom_retry_params(
+        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
+    ):
         """Test initialization with custom retry parameters."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -60,7 +63,7 @@ class TestGraphRAGSystemInit:
             neo4j_password="password",
             openai_api_key="test-key",
             max_retry_attempts=5,
-            retry_delay=2.0
+            retry_delay=2.0,
         )
 
         assert system.max_retry_attempts == 5
@@ -70,11 +73,13 @@ class TestGraphRAGSystemInit:
 class TestConnectionManagement:
     """Test connection management and retry logic."""
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
-    def test_ensure_connection_healthy(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
+    def test_ensure_connection_healthy(
+        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
+    ):
         """Test _ensure_connection with healthy connection."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -86,18 +91,18 @@ class TestConnectionManagement:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         # Should not raise any exception
         system._ensure_connection()
         assert mock_driver.verify_connectivity.call_count >= 1
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
-    @patch('graphrag_system.time.sleep')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
+    @patch("graphrag_system.time.sleep")
     def test_execute_with_retry_success_on_first_attempt(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -112,7 +117,7 @@ class TestConnectionManagement:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         mock_operation = Mock(return_value="success")
@@ -122,11 +127,11 @@ class TestConnectionManagement:
         mock_operation.assert_called_once()
         mock_sleep.assert_not_called()
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
-    @patch('graphrag_system.time.sleep')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
+    @patch("graphrag_system.time.sleep")
     def test_execute_with_retry_success_after_failure(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -143,22 +148,24 @@ class TestConnectionManagement:
             neo4j_password="password",
             openai_api_key="test-key",
             max_retry_attempts=3,
-            retry_delay=0.1
+            retry_delay=0.1,
         )
 
         # First call fails, second succeeds
-        mock_operation = Mock(side_effect=[ServiceUnavailable("Connection lost"), "success"])
+        mock_operation = Mock(
+            side_effect=[ServiceUnavailable("Connection lost"), "success"]
+        )
         result = system._execute_with_retry(mock_operation, "test operation")
 
         assert result == "success"
         assert mock_operation.call_count == 2
         mock_sleep.assert_called()
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
-    @patch('graphrag_system.time.sleep')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
+    @patch("graphrag_system.time.sleep")
     def test_execute_with_retry_exhausts_attempts(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -175,7 +182,7 @@ class TestConnectionManagement:
             neo4j_password="password",
             openai_api_key="test-key",
             max_retry_attempts=2,
-            retry_delay=0.1
+            retry_delay=0.1,
         )
 
         mock_operation = Mock(side_effect=ServiceUnavailable("Connection lost"))
@@ -189,10 +196,10 @@ class TestConnectionManagement:
 class TestFileMetadata:
     """Test file metadata and tracking."""
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_get_file_metadata_computes_checksum(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -207,22 +214,22 @@ class TestFileMetadata:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         test_content = b"test file content"
         expected_checksum = hashlib.sha256(test_content).hexdigest()
 
-        with patch('builtins.open', mock_open(read_data=test_content)):
+        with patch("builtins.open", mock_open(read_data=test_content)):
             metadata = system._get_file_metadata(Path("/test/file.txt"))
 
         assert metadata["path"] == "/test/file.txt"
         assert metadata["checksum"] == expected_checksum
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_file_needs_processing_new_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -237,18 +244,18 @@ class TestFileMetadata:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
-        with patch('builtins.open', mock_open(read_data=b"content")):
+        with patch("builtins.open", mock_open(read_data=b"content")):
             needs_processing = system._file_needs_processing(Path("/new/file.txt"))
 
         assert needs_processing is True
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_file_needs_processing_unchanged_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -263,7 +270,7 @@ class TestFileMetadata:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         test_content = b"content"
@@ -272,18 +279,18 @@ class TestFileMetadata:
 
         system.processed_files[str(file_path)] = {
             "path": str(file_path),
-            "checksum": checksum
+            "checksum": checksum,
         }
 
-        with patch('builtins.open', mock_open(read_data=test_content)):
+        with patch("builtins.open", mock_open(read_data=test_content)):
             needs_processing = system._file_needs_processing(file_path)
 
         assert needs_processing is False
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_file_needs_processing_modified_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -298,7 +305,7 @@ class TestFileMetadata:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         old_content = b"old content"
@@ -307,10 +314,10 @@ class TestFileMetadata:
 
         system.processed_files[str(file_path)] = {
             "path": str(file_path),
-            "checksum": hashlib.sha256(old_content).hexdigest()
+            "checksum": hashlib.sha256(old_content).hexdigest(),
         }
 
-        with patch('builtins.open', mock_open(read_data=new_content)):
+        with patch("builtins.open", mock_open(read_data=new_content)):
             needs_processing = system._file_needs_processing(file_path)
 
         assert needs_processing is True
@@ -319,10 +326,10 @@ class TestFileMetadata:
 class TestFileCategorizationAndLoading:
     """Test file categorization and loading functionality."""
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_categorize_files_all_new(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -337,21 +344,21 @@ class TestFileCategorizationAndLoading:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         files = [Path("/file1.pdf"), Path("/file2.md")]
 
-        with patch.object(system, '_file_needs_processing', return_value=True):
+        with patch.object(system, "_file_needs_processing", return_value=True):
             to_process, unchanged = system._categorize_files(files, force_rebuild=False)
 
         assert len(to_process) == 2
         assert len(unchanged) == 0
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_categorize_files_force_rebuild(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -366,7 +373,7 @@ class TestFileCategorizationAndLoading:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         files = [Path("/file1.pdf"), Path("/file2.md")]
@@ -376,10 +383,10 @@ class TestFileCategorizationAndLoading:
         assert len(to_process) == 2
         assert len(unchanged) == 0
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_load_pdf_document_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -394,7 +401,7 @@ class TestFileCategorizationAndLoading:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         mock_page = Mock()
@@ -402,7 +409,7 @@ class TestFileCategorizationAndLoading:
         mock_reader = Mock()
         mock_reader.pages = [mock_page]
 
-        with patch('graphrag_system.PdfReader', return_value=mock_reader):
+        with patch("graphrag_system.PdfReader", return_value=mock_reader):
             doc = system._load_pdf_document(Path("/test.pdf"))
 
         assert doc is not None
@@ -410,10 +417,10 @@ class TestFileCategorizationAndLoading:
         assert doc.metadata["filename"] == "test.pdf"
         assert doc.metadata["type"] == "pdf"
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     @pytest.mark.asyncio
     async def test_load_markdown_document_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
@@ -429,7 +436,7 @@ class TestFileCategorizationAndLoading:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         mock_file_content = "# Test Markdown\n\nThis is test content."
@@ -443,7 +450,7 @@ class TestFileCategorizationAndLoading:
         async_context_manager.__aenter__.return_value = mock_file
         async_context_manager.__aexit__.return_value = None
 
-        with patch('aiofiles.open', return_value=async_context_manager):
+        with patch("aiofiles.open", return_value=async_context_manager):
             doc = await system._load_markdown_document(Path("/test.md"))
 
         assert doc is not None
@@ -455,10 +462,10 @@ class TestFileCategorizationAndLoading:
 class TestDatabaseOperations:
     """Test database operation helper methods."""
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_remove_deleted_files(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -476,13 +483,13 @@ class TestDatabaseOperations:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         # Set up tracked files
         system.processed_files = {
             "/path/to/file1.pdf": {"checksum": "abc123"},
-            "/path/to/file2.pdf": {"checksum": "def456"}
+            "/path/to/file2.pdf": {"checksum": "def456"},
         }
 
         current_files = {"/path/to/file1.pdf"}  # file2 has been deleted
@@ -492,10 +499,10 @@ class TestDatabaseOperations:
         assert "/path/to/file2.pdf" not in system.processed_files
         assert "/path/to/file1.pdf" in system.processed_files
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_create_chunk_nodes(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -517,22 +524,28 @@ class TestDatabaseOperations:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         chunks = [
-            Document(page_content="Chunk 1", metadata={"source": "test.pdf", "filename": "test.pdf"}),
-            Document(page_content="Chunk 2", metadata={"source": "test.pdf", "filename": "test.pdf"})
+            Document(
+                page_content="Chunk 1",
+                metadata={"source": "test.pdf", "filename": "test.pdf"},
+            ),
+            Document(
+                page_content="Chunk 2",
+                metadata={"source": "test.pdf", "filename": "test.pdf"},
+            ),
         ]
 
         count = system._create_chunk_nodes(chunks)
 
         assert count == 2
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_initialize_retriever(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -548,12 +561,13 @@ class TestDatabaseOperations:
             neo4j_username="neo4j",
             neo4j_password="password",
             openai_api_key="test-key",
-            grok_api_key="grok-key"
+            grok_api_key="grok-key",
         )
 
-        with patch('graphrag_system.VectorRetriever') as mock_retriever_class, \
-             patch('graphrag_system.GraphRAG') as mock_rag_class:
-
+        with (
+            patch("graphrag_system.VectorRetriever") as mock_retriever_class,
+            patch("graphrag_system.GraphRAG") as mock_rag_class,
+        ):
             system._initialize_retriever()
 
             mock_retriever_class.assert_called_once()
@@ -565,10 +579,10 @@ class TestDatabaseOperations:
 class TestQueryMethods:
     """Test search and query functionality."""
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_get_context_for_query_no_retriever(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -583,17 +597,17 @@ class TestQueryMethods:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         result = system.get_context_for_query("test query")
 
         assert result == GraphRAGSystem.NO_DATA_MESSAGE
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_search_no_rag(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -608,17 +622,17 @@ class TestQueryMethods:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         result = system.search("test query")
 
         assert "not initialized" in result.lower()
 
-    @patch('graphrag_system.GraphDatabase')
-    @patch('graphrag_system.OpenAIEmbeddings')
-    @patch('graphrag_system.OpenAILLM')
-    @patch('graphrag_system.AppStorage')
+    @patch("graphrag_system.GraphDatabase")
+    @patch("graphrag_system.OpenAIEmbeddings")
+    @patch("graphrag_system.OpenAILLM")
+    @patch("graphrag_system.AppStorage")
     def test_close_connection(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -633,7 +647,7 @@ class TestQueryMethods:
             neo4j_uri="bolt://localhost:7687",
             neo4j_username="neo4j",
             neo4j_password="password",
-            openai_api_key="test-key"
+            openai_api_key="test-key",
         )
 
         system.close()

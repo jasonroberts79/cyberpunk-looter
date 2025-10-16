@@ -13,7 +13,8 @@ from typing import Optional
 
 load_dotenv()
 
-logging.getLogger('discord.gateway').setLevel(logging.ERROR)
+logging.getLogger("discord.gateway").setLevel(logging.ERROR)
+
 
 def check_internet_connectivity():
     """Check internet connectivity by attempting to connect to google.com"""
@@ -27,6 +28,7 @@ def check_internet_connectivity():
         print(f"✗ No internet connection detected: {e}")
         print("ERROR: Bot requires internet access to function. Exiting...")
         return False
+
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
@@ -50,24 +52,27 @@ graphrag_system: Optional[GraphRAGSystem] = None
 memory_system: Optional[MemorySystem] = None
 openai_client: Optional[OpenAI] = None
 
+
 @bot.event
 async def on_ready():
     global graphrag_system, memory_system, openai_client
-    
-    print(f'{bot.user} has connected to Discord!')
-    
+
+    print(f"{bot.user} has connected to Discord!")
+
     if not all([GROK_API_KEY, OPENAI_BASE_URL]):
         print("ERROR: Chat API key or URL missing (GROK_API_KEY or OPENAI_BASE_URL)!")
         return
-    
+
     if not OPENAI_EMBEDDINGS_KEY:
         print("ERROR: No embeddings API key found (OPENAI_EMBEDDINGS_KEY)!")
         return
 
     if not all([NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD]):
-        print("ERROR: Neo4j credentials not found (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)!")
+        print(
+            "ERROR: Neo4j credentials not found (NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD)!"
+        )
         return
-    
+
     print("Initializing GraphRAG system...")
     print("Using Neo4j GraphRAG with OpenAI embeddings")
     graphrag_system = GraphRAGSystem(
@@ -76,47 +81,49 @@ async def on_ready():
         neo4j_password=NEO4J_PASSWORD,
         openai_api_key=OPENAI_EMBEDDINGS_KEY,
         grok_api_key=GROK_API_KEY,
-        grok_model=OPENAI_MODEL
+        grok_model=OPENAI_MODEL,
     )
-    
+
     print("Building knowledge graph (this may take several minutes)...")
     await graphrag_system.build_knowledge_graph()
-    
+
     print("Initializing memory system...")
     memory_system = MemorySystem()
-    
+
     print("Initializing chat client...")
     print(f"Using Grok API with model: {OPENAI_MODEL}")
-        
+
     openai_client = OpenAI(api_key=GROK_API_KEY, base_url=OPENAI_BASE_URL)
-    
+
     print("Bot is ready!")
+
 
 @bot.command(name="ask", help="Ask a question using the knowledge base")
 async def ask_question(ctx, *, question: str):
     if not graphrag_system or not memory_system or not openai_client:
         await ctx.send("Bot is still initializing. Please wait...")
         return
-    
+
     user_id = str(ctx.author.id)
-    
+
     async with ctx.typing():
         memory_system.update_long_term(user_id, "interaction", None)
-        
+
         memory_system.add_to_short_term(user_id, "user", question)
-        
+
         context = graphrag_system.get_context_for_query(question, k=10)
-        
-        short_term_context = memory_system.get_short_term_context(user_id, max_messages=4)
+
+        short_term_context = memory_system.get_short_term_context(
+            user_id, max_messages=4
+        )
         user_summary = memory_system.get_user_summary(user_id)
-        
+
         conversation_history = []
         for msg in short_term_context:
-            conversation_history.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
-        
+            conversation_history.append(
+                {"role": msg["role"], "content": msg["content"]}
+            )
+
         system_prompt = f"""You are a helpful AI assistant with access to a knowledge base. 
         
 User Context: {user_summary}
@@ -129,11 +136,11 @@ Knowledge Base Context:
 Be concise and direct.
 
 Remember details from our conversation."""
-        
+
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(conversation_history)
         messages.append({"role": "user", "content": question})
-        
+
         try:
             response = openai_client.chat.completions.create(
                 model=OPENAI_MODEL,
@@ -141,58 +148,71 @@ Remember details from our conversation."""
                 temperature=0.6,
                 max_completion_tokens=15000,
             )
-            
-            answer = response.choices[0].message.content or "I couldn't generate a response."
-            
+
+            answer = (
+                response.choices[0].message.content or "I couldn't generate a response."
+            )
+
             memory_system.add_to_short_term(user_id, "assistant", answer)
-            
+
             if len(answer) > 2000:
                 file = io.StringIO(answer)
                 file.name = "answer.txt"
                 await ctx.send(file=discord.File(file, filename="answer.txt"))
             else:
                 await ctx.send(answer)
-                
+
         except Exception as e:
             await ctx.send(f"Error generating response: {str(e)}")
             print(f"Error: {e}")
 
-@bot.command(name="reindex", help="Rebuild the knowledge graph (use 'force' to rebuild all files)")
+
+@bot.command(
+    name="reindex",
+    help="Rebuild the knowledge graph (use 'force' to rebuild all files)",
+)
 async def reindex(ctx, *, mode: str = ""):
     if not graphrag_system:
         await ctx.send("GraphRAG system not initialized.")
         return
-    
+
     force_rebuild = mode.strip().lower() == "force"
-    
+
     async with ctx.typing():
         if force_rebuild:
-            await ctx.send("Force rebuilding knowledge graph... This will reprocess all files.")
+            await ctx.send(
+                "Force rebuilding knowledge graph... This will reprocess all files."
+            )
         else:
-            await ctx.send("Updating knowledge graph... Only processing new/modified files.")
-        
+            await ctx.send(
+                "Updating knowledge graph... Only processing new/modified files."
+            )
+
         await graphrag_system.build_knowledge_graph(force_rebuild=force_rebuild)
         await ctx.send("Knowledge graph updated successfully!")
+
 
 @bot.command(name="clear", help="Clear your conversation history")
 async def clear_memory(ctx):
     if not memory_system:
         await ctx.send("Memory system not initialized.")
         return
-    
+
     user_id = str(ctx.author.id)
     memory_system.clear_short_term(user_id)
     await ctx.send("Your conversation history has been cleared!")
+
 
 @bot.command(name="memory", help="View your interaction summary")
 async def show_memory(ctx):
     if not memory_system:
         await ctx.send("Memory system not initialized.")
         return
-    
+
     user_id = str(ctx.author.id)
     summary = memory_system.get_user_summary(user_id)
     await ctx.send(f"**Your Memory Summary:**\n{summary}")
+
 
 @bot.command(name="help_rag", help="Show available commands")
 async def help_command(ctx):
@@ -217,6 +237,7 @@ async def help_command(ctx):
 - Incremental indexing (skips unchanged files)
     """
     await ctx.send(help_text)
+
 
 if __name__ == "__main__":
     # Check internet connectivity first

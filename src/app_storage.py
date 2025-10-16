@@ -1,6 +1,7 @@
 import os
 from google.cloud import storage
 
+
 class AppStorage:
     def __init__(self):
         """Initialize Google Cloud Storage client"""

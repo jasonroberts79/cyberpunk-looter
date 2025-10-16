@@ -6,7 +6,7 @@ from unittest.mock import Mock, MagicMock
 import sys
 
 # Add src directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 @pytest.fixture
@@ -87,16 +87,28 @@ def sample_documents():
     return [
         Document(
             page_content="This is the first chunk of text.",
-            metadata={"source": "/test/doc1.pdf", "filename": "doc1.pdf", "type": "pdf"}
+            metadata={
+                "source": "/test/doc1.pdf",
+                "filename": "doc1.pdf",
+                "type": "pdf",
+            },
         ),
         Document(
             page_content="This is the second chunk of text.",
-            metadata={"source": "/test/doc1.pdf", "filename": "doc1.pdf", "type": "pdf"}
+            metadata={
+                "source": "/test/doc1.pdf",
+                "filename": "doc1.pdf",
+                "type": "pdf",
+            },
         ),
         Document(
             page_content="This is a markdown chunk.",
-            metadata={"source": "/test/doc2.md", "filename": "doc2.md", "type": "markdown"}
-        )
+            metadata={
+                "source": "/test/doc2.md",
+                "filename": "doc2.md",
+                "type": "markdown",
+            },
+        ),
     ]
 
 
@@ -121,9 +133,5 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "unit: marks tests as unit tests"
-    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "unit: marks tests as unit tests")
