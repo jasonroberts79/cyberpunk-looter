@@ -1,5 +1,6 @@
 import json
 import aiofiles
+import hashlib
 from pathlib import Path
 from typing import List, Dict, Optional, Set
 from neo4j import GraphDatabase
@@ -83,23 +84,24 @@ class GraphRAGSystem:
             print(f"Error saving tracking file: {e}")
     
     def _get_file_metadata(self, file_path: Path) -> Dict:
-        stat = file_path.stat()
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
         return {
             "path": str(file_path),
-            "mtime": stat.st_mtime,
-            "size": stat.st_size
+            "checksum": sha256_hash.hexdigest()
         }
     
     def _file_needs_processing(self, file_path: Path) -> bool:
         file_key = str(file_path)
         if file_key not in self.processed_files:
             return True
-        
+
         current_meta = self._get_file_metadata(file_path)
         stored_meta = self.processed_files[file_key]
-        
-        return (current_meta["mtime"] != stored_meta["mtime"] or 
-                current_meta["size"] != stored_meta["size"])
+
+        return current_meta["checksum"] != stored_meta.get("checksum")
     
     def _mark_file_processed(self, file_path: Path):
         self.processed_files[str(file_path)] = self._get_file_metadata(file_path)

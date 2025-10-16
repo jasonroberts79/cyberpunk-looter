@@ -146,9 +146,12 @@ Remember details from our conversation."""
             
             memory_system.add_to_short_term(user_id, "assistant", answer)
             
-            file = io.StringIO(answer)
-            file.name = "answer.txt"
-            await ctx.send(file=discord.File(file, filename="answer.txt"))
+            if len(answer) > 2000:
+                file = io.StringIO(answer)
+                file.name = "answer.txt"
+                await ctx.send(file=discord.File(file, filename="answer.txt"))
+            else:
+                await ctx.send(answer)
                 
         except Exception as e:
             await ctx.send(f"Error generating response: {str(e)}")
