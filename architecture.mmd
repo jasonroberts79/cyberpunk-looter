@@ -1,79 +1,106 @@
 graph TB
-      subgraph "External Services"
-          Discord[Discord Platform]
-          Grok[Grok/xAI API<br/>Chat Completion]
-          OpenAI[OpenAI API<br/>Embeddings]
-          Neo4j[(Neo4j Graph DB<br/>Knowledge Graph)]
-          Replit[Replit Object Storage<br/>Persistent Files]
-      end
+    subgraph "External Services"
+        Discord[Discord Platform]
+        Grok["Grok/xAI API
+        Chat Completion"]
+        OpenAI["OpenAI API
+        Embeddings"]
+        Neo4j[("Neo4j Graph DB
+        Knowledge Graph + Vectors")]
+    end
 
-      subgraph "Discord Bot Application"
-          Bot[bot.py<br/>Discord Bot<br/>Commands Handler]
+    subgraph "Discord Bot Application"
+        Bot["bot.py
+        Discord Bot
+        Command Handler"]
 
-          subgraph "Core Systems"
-              GraphRAG[graphrag_system.py<br/>GraphRAG System]
-              Memory[memory_system.py<br/>Memory System]
-              Storage[app_storage.py<br/>Storage Abstraction]
-          end
+        subgraph "Core Systems"
+            GraphRAG["graphrag_system.py
+            Document Ingestion
+            Vector Search
+            Context Retrieval"]
+            Memory["memory_system.py
+            Short-term Memory
+            Long-term Memory"]
+            Storage["app_storage.py
+            File Metadata
+            Storage Abstraction"]
+        end
 
-          subgraph "Knowledge Base"
-              KB[knowledge_base/<br/>PDF & Markdown Files]
-          end
-      end
+        subgraph "Knowledge Base"
+            KB["knowledge_base/
+            PDF & Markdown
+            Source Documents"]
+        end
+    end
 
-      subgraph "Deployment Infrastructure"
-          subgraph "CI/CD Pipeline"
-              GHA[GitHub Actions<br/>Workflow]
-              Docker[Docker Image<br/>Container]
-          end
+    subgraph "Deployment Infrastructure"
+        subgraph "CI/CD Pipeline"
+            GHA["GitHub Actions
+            Test + Build + Deploy"]
+            Docker["Docker Container
+            Python + uv"]
+        end
 
-          subgraph "GCP Resources"
-              AR[Artifact Registry<br/>Docker Repo]
-              CloudRun[Cloud Run<br/>Service]
-              SM[Secret Manager<br/>API Keys & Tokens]
-              TF[Terraform<br/>Infrastructure]
-          end
-      end
+        subgraph "Google Cloud Platform"
+            AR["Artifact Registry
+            Docker Repository"]
+            CloudRun["Cloud Run
+            Always-On Service
+            Min 1 Instance"]
+            SM["Secret Manager
+            Discord Token
+            API Keys
+            Neo4j Credentials"]
+            TF["Terraform
+            Infrastructure as Code"]
+        end
+    end
 
-      %% User Interactions
-      Discord -->|Messages & Commands| Bot
-      Bot -->|Responses| Discord
+    %% User Interactions
+    Discord -->|"!ask, !reindex
+    !memory, !clear"| Bot
+    Bot -->|Responses| Discord
 
-      %% Bot System Connections
-      Bot -->|Query Context| GraphRAG
-      Bot -->|Manage Memory| Memory
-      Bot -->|Chat Requests| Grok
+    %% Bot System Connections
+    Bot -->|Query with Context| GraphRAG
+    Bot -->|Store/Retrieve Memory| Memory
+    Bot -->|Generate Response| Grok
 
-      %% GraphRAG Connections
-      GraphRAG -->|Document Processing| KB
-      GraphRAG -->|Store/Query Chunks| Neo4j
-      GraphRAG -->|Generate Embeddings| OpenAI
-      GraphRAG -->|Chat with Context| Grok
-      GraphRAG -->|File Tracking| Storage
+    %% GraphRAG Connections
+    GraphRAG -->|Load & Parse| KB
+    GraphRAG -->|Store Chunks + Vectors| Neo4j
+    GraphRAG -->|Vector Similarity Search| Neo4j
+    GraphRAG -->|Generate Embeddings| OpenAI
+    GraphRAG -->|Chat with Retrieved Context| Grok
+    GraphRAG -->|Track File Changes| Storage
 
-      %% Memory System Connections
-      Memory -->|Persist Long-term Memory| Storage
+    %% Memory System Connections
+    Memory -->|Persist User Data| Storage
 
-      %% Storage Connections
-      Storage -->|Read/Write| Replit
+    %% Storage Connections
+    Storage -->|"File Metadata
+    SHA256 Checksums"| Storage
 
-      %% Deployment Flow
-      GHA -->|Build & Test| Docker
-      Docker -->|Push Image| AR
-      AR -->|Deploy| CloudRun
-      CloudRun -->|Fetch Secrets| SM
-      CloudRun -->|Run| Bot
-      TF -.->|Provision| CloudRun
-      TF -.->|Provision| AR
-      TF -.->|Provision| SM
+    %% Deployment Flow
+    GHA -->|"1. Run Tests
+    uv run pytest"| GHA
+    GHA -->|2. Build Image| Docker
+    Docker -->|3. Push| AR
+    AR -->|4. Deploy| CloudRun
+    CloudRun -->|5. Fetch Secrets| SM
+    CloudRun -->|6. Run Container| Bot
+    TF -.->|Provision & Configure| CloudRun
+    TF -.->|Provision & Configure| AR
+    TF -.->|Provision & Configure| SM
 
-      %% Styling
-      classDef external fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
-      classDef core fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-      classDef infra fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-      classDef storage fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    %% Styling
+    classDef external fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef core fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef infra fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef storage fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
 
-      class Discord,Grok,OpenAI,Neo4j,Replit external
-      class Bot,GraphRAG,Memory core
-      class GHA,Docker,AR,CloudRun,SM,TF infra
-      class Storage,KB storage
+    class Discord,Grok,OpenAI,Neo4j external
+    class Bot,GraphRAG,Memory core
+    class GHA,Docker,AR,CloudRun,SM,TF infra
+    class Storage,KB storage

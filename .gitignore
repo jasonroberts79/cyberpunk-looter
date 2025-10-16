@@ -58,3 +58,4 @@ logs/
 !.github/
 
 discord-bot-key.json
+.coverage

@@ -280,7 +280,7 @@ class GraphRAGSystem:
 
         for file in files_to_process:
             if file.suffix == '.pdf':
-                doc = await self._load_pdf_document(file)
+                doc = self._load_pdf_document(file)
                 if doc:
                     documents.append(doc)
             elif file.suffix == '.md':

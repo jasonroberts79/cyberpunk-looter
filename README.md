@@ -16,94 +16,79 @@ An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation
 
 ### Prerequisites
 
-1. **Discord Bot Setup**: Follow the detailed guide in [DISCORD_SETUP.md](DISCORD_SETUP.md)
-   - Create a Discord application
+1. **Discord Bot**: See [DISCORD_SETUP.md](DISCORD_SETUP.md) for complete setup instructions
    - **IMPORTANT**: Enable "Message Content Intent" in Bot settings
-   - Get your bot token and add to server
+2. **API Keys**:
+   - Grok (xAI): [console.x.ai](https://console.x.ai) - see [GROK_SETUP.md](GROK_SETUP.md)
+   - OpenAI: [platform.openai.com](https://platform.openai.com/api-keys)
+   - Or any OpenAI-compatible provider
 
-2. **API Keys**: 
-   - **For Grok (xAI)**: Get your key from [console.x.ai](https://console.x.ai) (recommended)
-   - **For OpenAI**: Get your key from [OpenAI](https://platform.openai.com/api-keys)
-   - Or use any OpenAI-compatible provider (Azure, local models, etc.)
+### Installation
 
-### Setup
+This project uses [uv](https://github.com/astral-sh/uv) for dependency management:
 
-1. ⚠️ **Enable Discord Intents**: Go to your [Discord app](https://discord.com/developers/applications), navigate to Bot section, and enable **MESSAGE CONTENT INTENT**
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Sync dependencies
+uv sync
+
+# Run the bot
+uv run python src/bot.py
+```
 
 ### Adding Knowledge
 
-1. Add your markdown (`.md`) or PDF (`.pdf`) files to the `knowledge_base/` directory
-2. Use the `!reindex` command in Discord to reload the knowledge base
+1. Add markdown (`.md`) or PDF (`.pdf`) files to `knowledge_base/`
+2. Use `!reindex` command in Discord to reload the knowledge base
 
 ## Discord Commands
 
 - `!ask <question>` - Ask a question using the knowledge base
 - `!reindex` - Update knowledge graph (processes only new/modified files)
 - `!reindex force` - Force rebuild entire knowledge graph
-- `!clear` - Clear your conversation history
-- `!memory` - View your interaction summary
-- `!help_rag` - Show available commands
-
-## Example Usage
-
-```
-!ask What is RAG?
-!ask How does memory work in AI chatbots?
-!memory
-!clear
-```
-
-## Configuration
-
-You can customize the bot by setting these environment variables:
-
-**For Grok API** (see [GROK_SETUP.md](GROK_SETUP.md)):
-- `GROK_API_KEY` - Your Grok API key from console.x.ai
-- `OPENAI_BASE_URL` - Set to `https://api.x.ai/v1` for Grok chat
-- `OPENAI_MODEL` - Chat model to use (e.g., `grok-4-fast` or other available Grok models)
-
-**For other providers**:
-- `OPENAI_BASE_URL` - Custom API endpoint
-- `OPENAI_MODEL` - Chat model to use
-
-## Architecture
-
-- **src/graphrag_system.py**: Handles Neo4j graph database, document ingestion, and vector search
-- **src/memory_system.py**: Manages short and long-term memory
-- **src/bot.py**: Discord bot logic and command handlers
-- **knowledge_base/**: Your markdown and PDF documents
-
-### Neo4j GraphRAG Implementation
-- Documents are split into chunks and stored as nodes in Neo4j
-- Each chunk has vector embeddings for similarity search
-- Sequential NEXT_CHUNK relationships connect adjacent chunks for context expansion
-- Neo4j vector index enables fast similarity-based retrieval
-- Incremental indexing tracks file modifications to avoid unnecessary reprocessing
-
-## Deployment
-
-### Cloud Deployment (GCP Cloud Run)
-
-This project includes Infrastructure as Code (Terraform) and CI/CD (GitHub Actions) for deploying to Google Cloud Run.
-
-**Quick deployment steps:**
-1. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed step-by-step instructions
-2. Configure GitHub secrets for GCP authentication
-3. Push to main branch - automatic deployment via GitHub Actions
-
-**What's included:**
-- Terraform configuration for Cloud Run, Artifact Registry, and Secret Manager
-- GitHub Actions workflow for automated testing, infrastructure provisioning, and deployment
-- Dockerfile for containerization
-- Always-on bot deployment (min 1 instance)
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete setup instructions.
-
-
-## Commands
-- `!ask <question>` - Ask a question using the knowledge graph
-- `!reindex` - Update knowledge graph (processes only new/modified files)
-- `!reindex force` - Force rebuild entire knowledge graph
 - `!clear` - Clear conversation history
 - `!memory` - View interaction summary
 - `!help_rag` - Show available commands
+
+## Testing
+
+Run tests with `uv`:
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=src --cov-report=html
+
+# Run in parallel (faster)
+uv run pytest -n auto
+```
+
+See [TESTING.md](TESTING.md) for comprehensive testing documentation.
+
+## Architecture
+
+**Core Components:**
+- `src/graphrag_system.py` - Neo4j graph database, document ingestion, vector search
+- `src/memory_system.py` - Short and long-term memory management
+- `src/bot.py` - Discord bot logic and command handlers
+- `knowledge_base/` - Your markdown and PDF documents
+
+**GraphRAG Implementation:**
+- Documents split into chunks stored as Neo4j nodes
+- Vector embeddings for similarity search
+- Sequential NEXT_CHUNK relationships for context expansion
+- Incremental indexing tracks file modifications
+
+## Deployment
+
+Deploy to Google Cloud Run with Terraform and GitHub Actions.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete instructions including:
+- GCP service account setup
+- GitHub secrets configuration
+- Automated CI/CD pipeline
+- Monitoring and troubleshooting
