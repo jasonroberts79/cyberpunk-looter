@@ -1,9 +1,11 @@
 import json
 import aiofiles
 import hashlib
+import time
 from pathlib import Path
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Optional, Set, Callable, Any
 from neo4j import GraphDatabase
+from neo4j.exceptions import ServiceUnavailable, SessionExpired, TransientError
 from neo4j_graphrag.embeddings import OpenAIEmbeddings
 from neo4j_graphrag.retrievers import VectorRetriever
 from neo4j_graphrag.generation import GraphRAG
@@ -22,18 +24,24 @@ class GraphRAGSystem:
         openai_api_key: str,
         grok_api_key: Optional[str] = None,
         grok_model: str = "grok-4-fast",
-        embedding_model: str = "text-embedding-3-small"
+        embedding_model: str = "text-embedding-3-small",
+        max_retry_attempts: int = 3,
+        retry_delay: float = 1.0
     ):
+        # Store connection parameters for reconnection
+        self.neo4j_uri = neo4j_uri
+        self.neo4j_username = neo4j_username
+        self.neo4j_password = neo4j_password
+        self.max_retry_attempts = max_retry_attempts
+        self.retry_delay = retry_delay
+
         # Mask password for logging (show first 2 and last 2 characters)
         masked_password = neo4j_password[:2] + "*" * (len(neo4j_password) - 4) + neo4j_password[-2:] if len(neo4j_password) > 4 else "***"
         print(f"Neo4j credentials - Username: {neo4j_username}, Password: {masked_password}")
         print(f"Connecting to Neo4j at {neo4j_uri}")
-        self.driver = GraphDatabase.driver(
-            neo4j_uri,
-            auth=(neo4j_username, neo4j_password)
-        )
-        
-        self.driver.verify_connectivity()
+
+        self.driver = None
+        self._connect_to_neo4j()
         
         print(f"Initializing OpenAI embeddings: {embedding_model}")
         self.embedder = OpenAIEmbeddings(
@@ -82,7 +90,55 @@ class GraphRAGSystem:
             self.storage.writedata(self.tracking_file, data)
         except Exception as e:
             print(f"Error saving tracking file: {e}")
-    
+
+    def _connect_to_neo4j(self):
+        """Connect to Neo4j and verify connectivity."""
+        try:
+            if self.driver:
+                self.driver.close()
+
+            self.driver = GraphDatabase.driver(
+                self.neo4j_uri,
+                auth=(self.neo4j_username, self.neo4j_password)
+            )
+            self.driver.verify_connectivity()
+            print("Successfully connected to Neo4j")
+        except Exception as e:
+            print(f"Failed to connect to Neo4j: {e}")
+            raise
+
+    def _ensure_connection(self):
+        """Ensure the Neo4j connection is alive, reconnect if necessary."""
+        try:
+            self.driver.verify_connectivity()
+        except (ServiceUnavailable, SessionExpired, TransientError, Exception) as e:
+            print(f"Connection lost: {e}. Attempting to reconnect...")
+            self._connect_to_neo4j()
+
+    def _execute_with_retry(self, operation: Callable[[], Any], operation_name: str = "operation") -> Any:
+        """Execute a database operation with automatic retry on connection failures."""
+        last_exception = None
+
+        for attempt in range(self.max_retry_attempts):
+            try:
+                self._ensure_connection()
+                return operation()
+            except (ServiceUnavailable, SessionExpired, TransientError) as e:
+                last_exception = e
+                if attempt < self.max_retry_attempts - 1:
+                    wait_time = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"{operation_name} failed (attempt {attempt + 1}/{self.max_retry_attempts}): {e}")
+                    print(f"Retrying in {wait_time:.1f} seconds...")
+                    time.sleep(wait_time)
+                    try:
+                        self._connect_to_neo4j()
+                    except Exception as reconnect_error:
+                        print(f"Reconnection failed: {reconnect_error}")
+                else:
+                    print(f"{operation_name} failed after {self.max_retry_attempts} attempts")
+
+        raise last_exception if last_exception else Exception(f"{operation_name} failed")
+
     def _get_file_metadata(self, file_path: Path) -> Dict:
         sha256_hash = hashlib.sha256()
         with open(file_path, "rb") as f:
@@ -194,11 +250,14 @@ class GraphRAGSystem:
         if deleted_files:
             print(f"Removing {len(deleted_files)} deleted file(s) from knowledge graph...")
             for deleted_path in deleted_files:
-                with self.driver.session() as session:
-                    session.run(
-                        "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
-                        source=deleted_path
-                    )
+                def delete_chunks():
+                    with self.driver.session() as session:
+                        session.run(
+                            "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
+                            source=deleted_path
+                        )
+
+                self._execute_with_retry(delete_chunks, f"Delete chunks for {Path(deleted_path).name}")
                 del self.processed_files[deleted_path]
                 print(f"Removed: {Path(deleted_path).name}")
             self._save_tracking()
@@ -278,61 +337,70 @@ class GraphRAGSystem:
         print(f"Created {len(splits)} chunks")
         
         print("Removing old chunks for modified files...")
-        with self.driver.session() as session:
-            for file in files_to_process:
-                session.run(
-                    "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
-                    source=str(file)
-                )
+        for file in files_to_process:
+            def remove_old_chunks():
+                with self.driver.session() as session:
+                    session.run(
+                        "MATCH (c:Chunk {source: $source}) DETACH DELETE c",
+                        source=str(file)
+                    )
+
+            self._execute_with_retry(remove_old_chunks, f"Remove old chunks for {file.name}")
         
         print("Creating new chunk nodes with embeddings...")
         chunk_count = 0
         batch_size = 10
         for i in range(0, len(splits), batch_size):
             batch = splits[i:i+batch_size]
-            
-            with self.driver.session() as session:
-                for idx, chunk in enumerate(batch, start=i):
-                    try:
-                        embedding = self.embedder.embed_query(chunk.page_content)
-                        
-                        session.run(
-                            """
-                            CREATE (c:Chunk {
-                                text: $text,
-                                source: $source,
-                                filename: $filename,
-                                embedding: $embedding,
-                                chunk_index: $chunk_index
-                            })
-                            """,
-                            text=chunk.page_content,
-                            source=chunk.metadata.get("source", "unknown"),
-                            filename=chunk.metadata.get("filename", "unknown"),
-                            embedding=embedding,
-                            chunk_index=idx
-                        )
-                        chunk_count += 1
-                        if chunk_count % 100 == 0:
-                            print(f"Processed {chunk_count}/{len(splits)} chunks...")
-                    except Exception as e:
-                        print(f"Error processing chunk: {e}")
-                        continue
+
+            for idx, chunk in enumerate(batch, start=i):
+                try:
+                    embedding = self.embedder.embed_query(chunk.page_content)
+
+                    def create_chunk_node():
+                        with self.driver.session() as session:
+                            session.run(
+                                """
+                                CREATE (c:Chunk {
+                                    text: $text,
+                                    source: $source,
+                                    filename: $filename,
+                                    embedding: $embedding,
+                                    chunk_index: $chunk_index
+                                })
+                                """,
+                                text=chunk.page_content,
+                                source=chunk.metadata.get("source", "unknown"),
+                                filename=chunk.metadata.get("filename", "unknown"),
+                                embedding=embedding,
+                                chunk_index=idx
+                            )
+
+                    self._execute_with_retry(create_chunk_node, f"Create chunk {idx}")
+                    chunk_count += 1
+                    if chunk_count % 100 == 0:
+                        print(f"Processed {chunk_count}/{len(splits)} chunks...")
+                except Exception as e:
+                    print(f"Error processing chunk: {e}")
+                    continue
         
         print(f"Created {chunk_count} chunk nodes in Neo4j")
         
         print("Updating sequential relationships...")
-        with self.driver.session() as session:
-            for file in files_to_process:
-                session.run(
-                    """
-                    MATCH (c1:Chunk {source: $source})
-                    MATCH (c2:Chunk {source: $source})
-                    WHERE c2.chunk_index = c1.chunk_index + 1
-                    MERGE (c1)-[:NEXT_CHUNK]->(c2)
-                    """,
-                    source=str(file)
-                )
+        for file in files_to_process:
+            def create_relationships():
+                with self.driver.session() as session:
+                    session.run(
+                        """
+                        MATCH (c1:Chunk {source: $source})
+                        MATCH (c2:Chunk {source: $source})
+                        WHERE c2.chunk_index = c1.chunk_index + 1
+                        MERGE (c1)-[:NEXT_CHUNK]->(c2)
+                        """,
+                        source=str(file)
+                    )
+
+            self._execute_with_retry(create_relationships, f"Create relationships for {file.name}")
         
         print("Ensuring vector index exists...")
         self._create_vector_index()
@@ -358,33 +426,37 @@ class GraphRAGSystem:
         print("GraphRAG system ready!")
     
     def _create_vector_index(self):
-        with self.driver.session() as session:
-            try:
-                session.run("DROP INDEX document_embeddings IF EXISTS")
-                
-                session.run(
-                    """
-                    CREATE VECTOR INDEX document_embeddings IF NOT EXISTS
-                    FOR (c:Chunk)
-                    ON c.embedding
-                    OPTIONS {indexConfig: {
-                        `vector.dimensions`: 1536,
-                        `vector.similarity_function`: 'cosine'
-                    }}
-                    """
-                )
-                print(f"Vector index '{self.vector_index_name}' created")
-                
-                session.run(
-                    """
-                    CREATE INDEX chunk_sequence_index IF NOT EXISTS
-                    FOR (c:Chunk)
-                    ON (c.source, c.chunk_index)
-                    """
-                )
-                print("Composite index on (source, chunk_index) created")
-            except Exception as e:
-                print(f"Error creating indexes: {e}")
+        def create_indexes():
+            with self.driver.session() as session:
+                try:
+                    session.run("DROP INDEX document_embeddings IF EXISTS")
+
+                    session.run(
+                        """
+                        CREATE VECTOR INDEX document_embeddings IF NOT EXISTS
+                        FOR (c:Chunk)
+                        ON c.embedding
+                        OPTIONS {indexConfig: {
+                            `vector.dimensions`: 1536,
+                            `vector.similarity_function`: 'cosine'
+                        }}
+                        """
+                    )
+                    print(f"Vector index '{self.vector_index_name}' created")
+
+                    session.run(
+                        """
+                        CREATE INDEX chunk_sequence_index IF NOT EXISTS
+                        FOR (c:Chunk)
+                        ON (c.source, c.chunk_index)
+                        """
+                    )
+                    print("Composite index on (source, chunk_index) created")
+                except Exception as e:
+                    print(f"Error creating indexes: {e}")
+                    raise
+
+        self._execute_with_retry(create_indexes, "Create vector indexes")
     
     def search(self, query: str, k: int = 10) -> str:
         if not self.rag:
@@ -400,44 +472,47 @@ class GraphRAGSystem:
     def get_context_for_query(self, query: str, k: int = 10) -> str:
         if not self.retriever:
             return "No relevant information found in the knowledge base."
-        
+
         try:
             query_vector = self.embedder.embed_query(query)
-            
-            with self.driver.session() as session:
-                result = session.run(
-                    """
-                    CALL db.index.vector.queryNodes($index_name, $k, $query_vector)
-                    YIELD node, score
-                    OPTIONAL MATCH (node)-[:NEXT_CHUNK]->(next:Chunk)
-                    RETURN node.text AS text, 
-                           node.filename AS filename, 
-                           next.text AS next_text,
-                           score
-                    ORDER BY score DESC
-                    LIMIT $k
-                    """,
-                    index_name=self.vector_index_name,
-                    k=k,
-                    query_vector=query_vector
-                )
-                
-                context_parts = []
-                for i, record in enumerate(result, 1):
-                    text = record.get("text", "")
-                    filename = record.get("filename", "Unknown")
-                    next_text = record.get("next_text", "")
-                    
-                    if text:
-                        full_context = text
-                        if next_text:
-                            full_context += "\n\n" + next_text
-                        context_parts.append(f"[Source {i}: {filename}]\n{full_context}\n")
-                
-                if context_parts:
-                    return "\n".join(context_parts)
-                else:
-                    return "No relevant information found in the knowledge base."
+
+            def query_context():
+                with self.driver.session() as session:
+                    result = session.run(
+                        """
+                        CALL db.index.vector.queryNodes($index_name, $k, $query_vector)
+                        YIELD node, score
+                        OPTIONAL MATCH (node)-[:NEXT_CHUNK]->(next:Chunk)
+                        RETURN node.text AS text,
+                               node.filename AS filename,
+                               next.text AS next_text,
+                               score
+                        ORDER BY score DESC
+                        LIMIT $k
+                        """,
+                        index_name=self.vector_index_name,
+                        k=k,
+                        query_vector=query_vector
+                    )
+
+                    context_parts = []
+                    for i, record in enumerate(result, 1):
+                        text = record.get("text", "")
+                        filename = record.get("filename", "Unknown")
+                        next_text = record.get("next_text", "")
+
+                        if text:
+                            full_context = text
+                            if next_text:
+                                full_context += "\n\n" + next_text
+                            context_parts.append(f"[Source {i}: {filename}]\n{full_context}\n")
+
+                    if context_parts:
+                        return "\n".join(context_parts)
+                    else:
+                        return "No relevant information found in the knowledge base."
+
+            return self._execute_with_retry(query_context, "Query context")
         except Exception as e:
             print(f"Context retrieval error: {e}")
             return "No relevant information found in the knowledge base."
