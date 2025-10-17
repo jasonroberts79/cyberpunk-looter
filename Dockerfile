@@ -18,4 +18,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["uv", "run", "src/bot.py"]
+CMD ["uv", "run", "src/bot.py", "--no-dev"]
