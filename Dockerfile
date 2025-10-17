@@ -5,6 +5,7 @@ ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
+RUN apk add --no-cache libgcc build-base
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
@@ -21,6 +22,8 @@ FROM python:3.11-alpine
 ENV PYTHONUNBUFFERED=1
 
 COPY --from=builder --chown=nonroot:nonroot /app /app
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
