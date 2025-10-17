@@ -20,12 +20,7 @@ FROM python:3.11-alpine
 
 ENV PYTHONUNBUFFERED=1
 
-RUN groupadd --system --gid 999 nonroot \
- && useradd --system --gid 999 --uid 999 --create-home nonroot
-
 COPY --from=builder --chown=nonroot:nonroot /app /app
-
-USER nonroot
 
 WORKDIR /app
 
