@@ -8,26 +8,12 @@ Test suite using **pytest** with:
 - Unit tests for individual components
 - Integration tests for system interactions
 - Mocking for external dependencies (Neo4j, OpenAI, etc.)
-- Code coverage reporting
 - Async test support
 
 ## Quick Start
 
 ```bash
-# Install test dependencies
-uv sync --extra test
-
-# Run all tests
 uv run pytest
-```
-
-## Test Structure
-
-```
-tests/
-├── conftest.py              # Shared fixtures and configuration
-├── test_graphrag_system.py  # Tests for GraphRAGSystem
-└── __init__.py              # Package initialization
 ```
 
 ## Running Tests
@@ -52,10 +38,6 @@ uv run pytest tests/test_graphrag_system.py::TestConnectionManagement::test_ensu
 uv run pytest -m unit              # Unit tests only
 uv run pytest -m integration       # Integration tests only
 uv run pytest -m "not slow"        # Skip slow tests
-
-# Coverage report
-uv run pytest --cov=src --cov-report=html
-open htmlcov/index.html
 
 # Parallel execution (faster)
 uv run pytest -n auto

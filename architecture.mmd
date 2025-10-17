@@ -83,13 +83,13 @@ graph TB
     SHA256 Checksums"| Storage
 
     %% Deployment Flow
-    GHA -->|"1. Run Tests
-    uv run pytest"| GHA
-    GHA -->|2. Build Image| Docker
-    Docker -->|3. Push| AR
-    AR -->|4. Deploy| CloudRun
-    CloudRun -->|5. Fetch Secrets| SM
-    CloudRun -->|6. Run Container| Bot
+    GHA -->|Run Tests
+        uv run pytest
+        Build Image| Docker
+    Docker -->|Push| AR
+    AR -->|Deploy| CloudRun
+    CloudRun -->|Fetch Secrets| SM
+    CloudRun -->|Run Container| Bot
     TF -.->|Provision & Configure| CloudRun
     TF -.->|Provision & Configure| AR
     TF -.->|Provision & Configure| SM

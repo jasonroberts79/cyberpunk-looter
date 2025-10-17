@@ -35,7 +35,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 
 # Run the bot
-uv run python src/bot.py
+uv run src/bot.py
 ```
 
 ### Adding Knowledge
@@ -57,14 +57,7 @@ uv run python src/bot.py
 Run tests with `uv`:
 
 ```bash
-# Run all tests
 uv run pytest
-
-# Run with coverage
-uv run pytest --cov=src --cov-report=html
-
-# Run in parallel (faster)
-uv run pytest -n auto
 ```
 
 See [TESTING.md](TESTING.md) for comprehensive testing documentation.
