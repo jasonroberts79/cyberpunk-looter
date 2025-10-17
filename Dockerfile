@@ -21,7 +21,7 @@ FROM python:3.11-alpine
 
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=builder --chown=nonroot:nonroot /app /app
+COPY --from=builder /app /app
 
 ENV PATH="/app/.venv/bin:$PATH"
 
