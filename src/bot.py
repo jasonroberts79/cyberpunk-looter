@@ -9,11 +9,14 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from graphrag_system import GraphRAGSystem
 from memory_system import MemorySystem
-from typing import Optional, Any, cast
+from typing import Optional
 
 load_dotenv()
 
 logging.getLogger("discord.gateway").setLevel(logging.ERROR)
+
+game_context = "You have with access to a knowledge base about the RPG Cyberpunk RED. Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020)."
+
 
 def ensure_envvar(var_name: str) -> str:
     value = os.getenv(var_name)
@@ -117,21 +120,35 @@ async def ask_question(ctx, *, question: str):
 
         context = graphrag_system.get_context_for_query(question, k=10)
 
-        short_term_context = memory_system.get_short_term_context(
-            user_id, max_messages=4
-        )
         user_summary = memory_system.get_user_summary(user_id)
         party_summary = memory_system.get_party_summary(user_id)
+        previous_response_id = memory_system.get_last_response_id(user_id)
 
-        conversation_history = []
-        for msg in short_term_context:
-            conversation_history.append(
-                {"role": msg["role"], "content": msg["content"]}
+        # Build the input based on whether we have a previous conversation
+        if previous_response_id:
+            # Continue existing conversation - only send new message
+            input_messages = [{"role": "user", "content": question}]
+            api_params = {
+                "model": OPENAI_MODEL,
+                "previous_response_id": previous_response_id,
+                "input": input_messages,
+                "temperature": 0.6,
+                "max_completion_tokens": 15000,
+            }
+        else:
+            # Start new conversation - send full context
+            short_term_context = memory_system.get_short_term_context(
+                user_id, max_messages=4
             )
+            conversation_history = []
+            for msg in short_term_context:
+                conversation_history.append(
+                    {"role": msg["role"], "content": msg["content"]}
+                )
 
-        system_prompt = f"""You are a helpful AI assistant with access to a knowledge base about the RPG Cyberpunk RED. 
-Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020) unless it is explicitly in the knowledge base.
-    
+            system_prompt = f"""You are a helpful AI assistant.
+{game_context}
+
 User Context: {user_summary}
 
 Party Context:
@@ -144,21 +161,34 @@ Knowledge Base Context:
 
 Be concise and direct. Remember details from our conversation."""
 
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(conversation_history)
-        messages.append({"role": "user", "content": question})
+            input_messages = [{"role": "system", "content": system_prompt}]
+            input_messages.extend(conversation_history)
+            input_messages.append({"role": "user", "content": question})
+
+            api_params = {
+                "model": OPENAI_MODEL,
+                "input": input_messages,
+                "temperature": 0.6,
+                "max_completion_tokens": 15000,
+            }
 
         try:
-            response = openai_client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=cast(Any, messages),
-                temperature=0.6,
-                max_completion_tokens=15000,
-            )
+            response = openai_client.responses.create(**api_params)
 
-            answer = (
-                response.choices[0].message.content or "I couldn't generate a response."
-            )
+            # Save the response ID for future continuations
+            memory_system.set_last_response_id(user_id, response.id)
+
+            # Extract answer from response output
+            answer = None
+            if hasattr(response, 'output') and response.output:
+                # Find the last assistant message in the output
+                for msg in reversed(response.output):
+                    if msg.get('role') == 'assistant':
+                        answer = msg.get('content', '')
+                        break
+
+            if not answer:
+                answer = "I couldn't generate a response."
 
             memory_system.add_to_short_term(user_id, "assistant", answer)
 
@@ -170,8 +200,157 @@ Be concise and direct. Remember details from our conversation."""
                 await ctx.send(answer)
 
         except Exception as e:
-            await ctx.send(f"Error generating response: {str(e)}")
-            print(f"Error: {e}")
+            error_msg = str(e)
+            # Check if the error is due to an invalid/expired response ID
+            if previous_response_id and ("response" in error_msg.lower() or "not found" in error_msg.lower()):
+                print(f"Response ID expired or invalid, retrying without it: {e}")
+                # Clear the invalid response ID and retry
+                memory_system.set_last_response_id(user_id, "")
+                await ctx.send("Previous conversation expired. Starting fresh...")
+                # Retry the command would require recursion, so just inform the user
+                await ctx.send("Please try your question again.")
+            else:
+                await ctx.send(f"Error generating response: {error_msg}")
+                print(f"Error: {e}")
+
+@bot.command(name="recommend_gear", help="Get gear distribution recommendations")
+async def recommend_gear(ctx, *, args: str):
+    """
+    Recommend gear distribution for party members using AI.
+    By default, considers all party members, if you want to exclude someone say so in the prompt.
+    Accepts natural language descriptions of loot.
+
+    Usage: !recommend_gear <loot description>
+    Examples:
+      !recommend_gear Assault Rifle, Body Armor, Neural Processor
+      !recommend_gear We got a heavy pistol and some body armor from the ganger
+      !recommend_gear 2 SMGs and a tech scanner
+    """
+    if not graphrag_system or not memory_system or not openai_client:
+        await ctx.send("Bot is still initializing. Please wait...")
+        return
+
+    user_id = str(ctx.author.id)
+
+    loot_description = args.strip()
+
+    # Validate loot description is not empty
+    if not loot_description:
+        await ctx.send("Please describe the loot to distribute.")
+        return
+
+    # Get all party members
+    all_chars = memory_system.list_party_characters(user_id)
+
+    if not all_chars:
+        await ctx.send(
+            "You don't have any party members registered yet.\n"
+            "Use `!add_character` to add party members first."
+        )
+        return
+
+    context_prompt = f"""Look up information related to this gear: {loot_description}"""
+    context = graphrag_system.get_context_for_query(context_prompt, k=10)
+
+    async with ctx.typing():
+        previous_response_id = memory_system.get_last_response_id(user_id)
+
+        # Build party context for the LLM
+        party_context = "Party Members:\n"
+        for char in all_chars:
+            party_context += f"- {char['name']} ({char['role']})"
+            if char.get('gear_preferences'):
+                party_context += f" - Prefers: {', '.join(char['gear_preferences'])}"
+            party_context += "\n"
+
+        # Create the user prompt
+        user_prompt = f"""Please help distribute this loot among my party members.
+{game_context}
+
+Party Context:
+{party_context}
+
+Loot Description:
+{loot_description}
+
+Use the knowledge base context, if needed, to inform your recommendation:
+{context}
+
+Parse the loot description to identify individual items, then recommend how to distribute them among the party members. Consider:
+1. Character roles and their typical gear needs
+2. Each character's stated gear preferences
+3. Fair distribution when preferences conflict
+4. Overall party effectiveness
+5. The market value of the item if no clear preference can be determined
+
+Provide your recommendations in this format:
+**[Character Name]** ([Role])
+  - [Item 1]
+  - [Item 2]
+  ..."""
+
+        # Build the input based on whether we have a previous conversation
+        if previous_response_id:
+            # Continue existing conversation - only send new message
+            input_messages = [{"role": "user", "content": user_prompt}]
+            api_params = {
+                "model": OPENAI_MODEL,
+                "previous_response_id": previous_response_id,
+                "input": input_messages,
+                "temperature": 0.7,
+                "max_completion_tokens": 2000,
+            }
+        else:
+            # Start new conversation - include system prompt
+            system_prompt = "You are a knowledgeable game master who helps parties distribute loot fairly and strategically with access to a knowledge base about the RPG Cyberpunk RED. Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020) unless it is explicitly in the knowledge base."
+            input_messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            api_params = {
+                "model": OPENAI_MODEL,
+                "input": input_messages,
+                "temperature": 0.7,
+                "max_completion_tokens": 2000,
+            }
+
+        try:
+            response = openai_client.responses.create(**api_params)
+
+            # Save the response ID for future continuations
+            memory_system.set_last_response_id(user_id, response.id)
+
+            # Extract recommendation from response output
+            recommendation = None
+            if hasattr(response, 'output') and response.output:
+                # Find the last assistant message in the output
+                for msg in reversed(response.output):
+                    if msg.get('role') == 'assistant':
+                        recommendation = msg.get('content', '')
+                        break
+
+            if not recommendation:
+                recommendation = "I couldn't generate recommendations."
+
+            if len(recommendation) > 2000:
+                file = io.BytesIO(recommendation.encode("utf-8"))
+                file.seek(0)
+                await ctx.send(file=discord.File(file, filename="gear_recommendations.txt"))
+            else:
+                await ctx.send(recommendation)
+
+        except Exception as e:
+            error_msg = str(e)
+            # Check if the error is due to an invalid/expired response ID
+            if previous_response_id and ("response" in error_msg.lower() or "not found" in error_msg.lower()):
+                print(f"Response ID expired or invalid, retrying without it: {e}")
+                # Clear the invalid response ID and retry
+                memory_system.set_last_response_id(user_id, "")
+                await ctx.send("Previous conversation expired. Starting fresh...")
+                await ctx.send("Please try your command again.")
+            else:
+                await ctx.send(f"Error generating recommendations: {error_msg}")
+                print(f"Error: {e}")
 
 
 @bot.command(
@@ -298,101 +477,6 @@ async def remove_character(ctx, *, name: str):
         await ctx.send(f"Character **{name}** has been removed from your party.")
     else:
         await ctx.send(f"Character **{name}** not found in your party.")
-
-
-@bot.command(name="recommend_gear", help="Get gear distribution recommendations")
-async def recommend_gear(ctx, *, args: str):
-    """
-    Recommend gear distribution for party members using AI.
-    By default, considers all party members, if you want to exclude someone say so in the prompt.
-    Accepts natural language descriptions of loot.
-
-    Usage: !recommend_gear <loot description>
-    Examples:
-      !recommend_gear Assault Rifle, Body Armor, Neural Processor
-      !recommend_gear We got a heavy pistol and some body armor from the ganger
-      !recommend_gear 2 SMGs and a tech scanner
-    """
-    if not memory_system or not openai_client:
-        await ctx.send("Bot is still initializing. Please wait...")
-        return
-
-    user_id = str(ctx.author.id)
-
-    loot_description = args.strip()
-
-    # Validate loot description is not empty
-    if not loot_description:
-        await ctx.send("Please describe the loot to distribute.")
-        return
-
-    # Get all party members
-    all_chars = memory_system.list_party_characters(user_id)
-
-    if not all_chars:
-        await ctx.send(
-            "You don't have any party members registered yet.\n"
-            "Use `!add_character` to add party members first."
-        )
-        return
-
-    async with ctx.typing():
-        # Build party context for the LLM
-        party_context = "Party Members:\n"
-        for char in all_chars:
-            party_context += f"- {char['name']} ({char['role']})"
-            if char.get('gear_preferences'):
-                party_context += f" - Prefers: {', '.join(char['gear_preferences'])}"
-            party_context += "\n"
-
-        # Create prompt for the LLM
-        prompt = f"""You are a game master helping distribute loot fairly and strategically with access to a knowledge base about the RPG Cyberpunk RED.
-Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020) unless it is explicitly in the knowledge base.
-
-Party Context:
-{party_context}
-
-Loot Description:
-{loot_description}
-
-Please parse the loot description to identify individual items, then recommend how to distribute them among the party members. Consider:
-1. Character roles and their typical gear needs
-2. Each character's stated gear preferences
-3. Fair distribution when preferences conflict
-4. Overall party effectiveness
-5. The market value of the item if no clear preference can be determined
-
-Provide your recommendations in this format:
-**[Character Name]** ([Role])
-  - [Item 1]
-  - [Item 2]
-  ...
-
-"""
-
-        try:
-            response = openai_client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=cast(Any, [
-                    {"role": "system", "content": "You are a knowledgeable game master who helps parties distribute loot fairly and strategically."},
-                    {"role": "user", "content": prompt}
-                ]),
-                temperature=0.7,
-                max_completion_tokens=2000,
-            )
-
-            recommendation = response.choices[0].message.content or "I couldn't generate recommendations."
-
-            if len(recommendation) > 2000:
-                file = io.BytesIO(recommendation.encode("utf-8"))
-                file.seek(0)
-                await ctx.send(file=discord.File(file, filename="gear_recommendations.txt"))
-            else:
-                await ctx.send(recommendation)
-
-        except Exception as e:
-            await ctx.send(f"Error generating recommendations: {str(e)}")
-            print(f"Error: {e}")
 
 
 @bot.command(name="help_rag", help="Show available commands")
