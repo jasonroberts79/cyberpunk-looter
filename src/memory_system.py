@@ -106,3 +106,88 @@ class MemorySystem:
             if summary_parts
             else "This is our first conversation."
         )
+
+    # Party Management Methods
+
+    def add_party_character(
+        self, user_id: str, character_name: str, role: str, gear_preferences: List[str]
+    ) -> bool:
+        """Add or update a party character for a user. Returns True if new, False if updated."""
+        if user_id not in self.long_term_memory:
+            self.long_term_memory[user_id] = {
+                "user_id": user_id,
+                "created_at": datetime.now().isoformat(),
+                "preferences": {},
+                "interaction_count": 0,
+                "topics_discussed": [],
+                "party_members": {},
+            }
+
+        if "party_members" not in self.long_term_memory[user_id]:
+            self.long_term_memory[user_id]["party_members"] = {}
+
+        character_key = character_name.lower()
+        is_new = character_key not in self.long_term_memory[user_id]["party_members"]
+
+        self.long_term_memory[user_id]["party_members"][character_key] = {
+            "name": character_name,
+            "role": role,
+            "gear_preferences": gear_preferences,
+            "created_at": datetime.now().isoformat()
+            if is_new
+            else self.long_term_memory[user_id]["party_members"][character_key].get(
+                "created_at"
+            ),
+            "updated_at": datetime.now().isoformat(),
+        }
+
+        self.save_long_term_memory()
+        return is_new
+
+    def remove_party_character(self, user_id: str, character_name: str) -> bool:
+        """Remove a party character. Returns True if removed, False if not found."""
+        user_data = self.get_long_term_context(user_id)
+        if not user_data or "party_members" not in user_data:
+            return False
+
+        character_key = character_name.lower()
+        if character_key in user_data["party_members"]:
+            del user_data["party_members"][character_key]
+            self.save_long_term_memory()
+            return True
+        return False
+
+    def get_party_character(
+        self, user_id: str, character_name: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get a specific party character by name."""
+        user_data = self.get_long_term_context(user_id)
+        if not user_data or "party_members" not in user_data:
+            return None
+
+        character_key = character_name.lower()
+        return user_data["party_members"].get(character_key)
+
+    def list_party_characters(self, user_id: str) -> List[Dict[str, Any]]:
+        """List all party characters for a user."""
+        user_data = self.get_long_term_context(user_id)
+        if not user_data or "party_members" not in user_data:
+            return []
+
+        return list(user_data["party_members"].values())
+
+    def get_party_summary(self, user_id: str) -> str:
+        """Get a formatted summary of the user's party for LLM context."""
+        characters = self.list_party_characters(user_id)
+
+        if not characters:
+            return "No party members registered."
+
+        summary = "Party Members:\n"
+        for char in characters:
+            summary += f"- {char['name']} ({char['role']})"
+            if char.get("gear_preferences"):
+                summary += f" - Prefers: {', '.join(char['gear_preferences'])}"
+            summary += "\n"
+
+        return summary.strip()

@@ -38,18 +38,8 @@ class GraphRAGSystem:
         self.max_retry_attempts = max_retry_attempts
         self.retry_delay = retry_delay
 
-        # Mask password for logging (show first 2 and last 2 characters)
-        masked_password = (
-            neo4j_password[:2] + "*" * (len(neo4j_password) - 4) + neo4j_password[-2:]
-            if len(neo4j_password) > 4
-            else "***"
-        )
-        print(
-            f"Neo4j credentials - Username: {neo4j_username}, Password: {masked_password}"
-        )
         print(f"Connecting to Neo4j at {neo4j_uri}")
-
-        self.driver = None
+        self.driver_initialized = False
         self._connect_to_neo4j()
 
         print(f"Initializing OpenAI embeddings: {embedding_model}")
@@ -103,12 +93,13 @@ class GraphRAGSystem:
     def _connect_to_neo4j(self):
         """Connect to Neo4j and verify connectivity."""
         try:
-            if self.driver:
+            if self.driver_initialized and self.driver:
                 self.driver.close()
 
             self.driver = GraphDatabase.driver(
                 self.neo4j_uri, auth=(self.neo4j_username, self.neo4j_password)
             )
+            self.driver_initialized = True
             self.driver.verify_connectivity()
             print("Successfully connected to Neo4j")
         except Exception as e:

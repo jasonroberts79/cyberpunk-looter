@@ -7,20 +7,16 @@ from unittest.mock import Mock, patch, mock_open, AsyncMock
 from neo4j.exceptions import ServiceUnavailable
 from langchain.schema import Document
 
-import sys
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from graphrag_system import GraphRAGSystem
+from src.graphrag_system import GraphRAGSystem
 
 
 class TestGraphRAGSystemInit:
     """Test GraphRAGSystem initialization."""
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_init_success(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test successful initialization of GraphRAGSystem."""
         mock_driver = Mock()
@@ -43,10 +39,10 @@ class TestGraphRAGSystemInit:
         assert system.neo4j_password == "password"
         mock_driver.verify_connectivity.assert_called_once()
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_init_with_custom_retry_params(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -73,10 +69,10 @@ class TestGraphRAGSystemInit:
 class TestConnectionManagement:
     """Test connection management and retry logic."""
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_ensure_connection_healthy(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -98,11 +94,11 @@ class TestConnectionManagement:
         system._ensure_connection()
         assert mock_driver.verify_connectivity.call_count >= 1
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
-    @patch("graphrag_system.time.sleep")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.time.sleep")
     def test_execute_with_retry_success_on_first_attempt(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -127,11 +123,11 @@ class TestConnectionManagement:
         mock_operation.assert_called_once()
         mock_sleep.assert_not_called()
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
-    @patch("graphrag_system.time.sleep")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.time.sleep")
     def test_execute_with_retry_success_after_failure(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -161,11 +157,11 @@ class TestConnectionManagement:
         assert mock_operation.call_count == 2
         mock_sleep.assert_called()
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
-    @patch("graphrag_system.time.sleep")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.time.sleep")
     def test_execute_with_retry_exhausts_attempts(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -196,10 +192,10 @@ class TestConnectionManagement:
 class TestFileMetadata:
     """Test file metadata and tracking."""
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_get_file_metadata_computes_checksum(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -226,10 +222,10 @@ class TestFileMetadata:
         assert metadata["path"] == "/test/file.txt"
         assert metadata["checksum"] == expected_checksum
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_file_needs_processing_new_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -252,10 +248,10 @@ class TestFileMetadata:
 
         assert needs_processing is True
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_file_needs_processing_unchanged_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -287,10 +283,10 @@ class TestFileMetadata:
 
         assert needs_processing is False
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_file_needs_processing_modified_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -326,10 +322,10 @@ class TestFileMetadata:
 class TestFileCategorizationAndLoading:
     """Test file categorization and loading functionality."""
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_categorize_files_all_new(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -355,10 +351,10 @@ class TestFileCategorizationAndLoading:
         assert len(to_process) == 2
         assert len(unchanged) == 0
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_categorize_files_force_rebuild(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -383,10 +379,10 @@ class TestFileCategorizationAndLoading:
         assert len(to_process) == 2
         assert len(unchanged) == 0
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_load_pdf_document_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -409,7 +405,7 @@ class TestFileCategorizationAndLoading:
         mock_reader = Mock()
         mock_reader.pages = [mock_page]
 
-        with patch("graphrag_system.PdfReader", return_value=mock_reader):
+        with patch("src.graphrag_system.PdfReader", return_value=mock_reader):
             doc = system._load_pdf_document(Path("/test.pdf"))
 
         assert doc is not None
@@ -417,10 +413,10 @@ class TestFileCategorizationAndLoading:
         assert doc.metadata["filename"] == "test.pdf"
         assert doc.metadata["type"] == "pdf"
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     @pytest.mark.asyncio
     async def test_load_markdown_document_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
@@ -462,10 +458,10 @@ class TestFileCategorizationAndLoading:
 class TestDatabaseOperations:
     """Test database operation helper methods."""
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_remove_deleted_files(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -499,10 +495,10 @@ class TestDatabaseOperations:
         assert "/path/to/file2.pdf" not in system.processed_files
         assert "/path/to/file1.pdf" in system.processed_files
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_create_chunk_nodes(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -542,10 +538,10 @@ class TestDatabaseOperations:
 
         assert count == 2
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_initialize_retriever(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -565,8 +561,8 @@ class TestDatabaseOperations:
         )
 
         with (
-            patch("graphrag_system.VectorRetriever") as mock_retriever_class,
-            patch("graphrag_system.GraphRAG") as mock_rag_class,
+            patch("src.graphrag_system.VectorRetriever") as mock_retriever_class,
+            patch("src.graphrag_system.GraphRAG") as mock_rag_class,
         ):
             system._initialize_retriever()
 
@@ -579,10 +575,10 @@ class TestDatabaseOperations:
 class TestQueryMethods:
     """Test search and query functionality."""
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_get_context_for_query_no_retriever(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -604,10 +600,10 @@ class TestQueryMethods:
 
         assert result == GraphRAGSystem.NO_DATA_MESSAGE
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_search_no_rag(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -629,10 +625,10 @@ class TestQueryMethods:
 
         assert "not initialized" in result.lower()
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_close_connection(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):

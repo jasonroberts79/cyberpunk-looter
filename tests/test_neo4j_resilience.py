@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from graphrag_system import GraphRAGSystem
+from src.graphrag_system import GraphRAGSystem
 
 
 class TestNeo4jConnectionResilience:
@@ -19,10 +19,10 @@ class TestNeo4jConnectionResilience:
     and automatically reconnect using mocked Neo4j connections.
     """
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_initial_connection_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -47,10 +47,10 @@ class TestNeo4jConnectionResilience:
         assert system.neo4j_uri == "bolt://localhost:7687"
         mock_driver.verify_connectivity.assert_called()
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_connection_health_monitoring(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -74,10 +74,10 @@ class TestNeo4jConnectionResilience:
         system._ensure_connection()
         assert mock_driver.verify_connectivity.call_count >= 1
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_database_operation_with_retry(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -110,16 +110,19 @@ class TestNeo4jConnectionResilience:
         def test_operation():
             with system.driver.session() as session:
                 result = session.run("RETURN 1 AS num")
-                return result.single()["num"]
+                record = result.single()
+                if record is None:
+                    raise ValueError("No record found")
+                return record["num"]
 
         result = system._execute_with_retry(test_operation, "Test query")
         assert result == 1
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
-    @patch("graphrag_system.time.sleep")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.time.sleep")
     def test_connection_failure_triggers_reconnect(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -154,11 +157,11 @@ class TestNeo4jConnectionResilience:
         # Verify reconnection was attempted (initial + failed check + reconnect)
         assert mock_driver.verify_connectivity.call_count >= 2
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
-    @patch("graphrag_system.time.sleep")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.time.sleep")
     def test_retry_with_exponential_backoff(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -198,11 +201,11 @@ class TestNeo4jConnectionResilience:
         # Verify exponential backoff sleep calls
         assert mock_sleep.call_count == 2  # Two retries
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
-    @patch("graphrag_system.time.sleep")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.time.sleep")
     def test_retry_exhaustion(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -228,10 +231,10 @@ class TestNeo4jConnectionResilience:
         with pytest.raises(ServiceUnavailable):
             system._execute_with_retry(always_failing_operation, "Test operation")
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_handles_session_expired(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -264,10 +267,10 @@ class TestNeo4jConnectionResilience:
         assert result == "success"
         assert call_count["count"] == 2
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_handles_transient_error(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -300,10 +303,10 @@ class TestNeo4jConnectionResilience:
         assert result == "success"
         assert call_count["count"] == 2
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_connection_cleanup(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -330,10 +333,10 @@ class TestNeo4jConnectionResilience:
         system.close()
         mock_driver.close.assert_called_once()
 
-    @patch("graphrag_system.GraphDatabase")
-    @patch("graphrag_system.OpenAIEmbeddings")
-    @patch("graphrag_system.OpenAILLM")
-    @patch("graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")
+    @patch("src.graphrag_system.OpenAIEmbeddings")
+    @patch("src.graphrag_system.OpenAILLM")
+    @patch("src.graphrag_system.AppStorage")
     def test_custom_retry_parameters(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
