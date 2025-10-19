@@ -176,15 +176,7 @@ Be concise and direct. Remember details from our conversation."""
             # Save the response ID for future continuations
             memory_system.set_last_response_id(user_id, response.id)
 
-            # Extract answer from response output
-            answer = None
-            if hasattr(response, 'output') and response.output:
-                # Find the last assistant message in the output
-                for msg in reversed(response.output):
-                    if msg.get('role') == 'assistant':
-                        answer = msg.get('content', '')
-                        break
-
+            answer = response.output_text            
             if not answer:
                 answer = "I couldn't generate a response."
 
@@ -316,15 +308,7 @@ Provide your recommendations in this format:
             # Save the response ID for future continuations
             memory_system.set_last_response_id(user_id, response.id)
 
-            # Extract recommendation from response output
-            recommendation = None
-            if hasattr(response, 'output') and response.output:
-                # Find the last assistant message in the output
-                for msg in reversed(response.output):
-                    if msg.get('role') == 'assistant':
-                        recommendation = msg.get('content', '')
-                        break
-
+            recommendation = response.output_text
             if not recommendation:
                 recommendation = "I couldn't generate recommendations."
 
