@@ -129,10 +129,12 @@ async def ask_question(ctx, *, question: str):
                 {"role": msg["role"], "content": msg["content"]}
             )
 
-        system_prompt = f"""You are a helpful AI assistant with access to a knowledge base.
-
+        system_prompt = f"""You are a helpful AI assistant with access to a knowledge base about the RPG Cyberpunk RED. 
+Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020) unless it is explicitly in the knowledge base.
+    
 User Context: {user_summary}
 
+Party Context:
 {party_summary}
 
 Use the following context from the knowledge base to answer questions. If the answer isn't in the context, say so clearly.
@@ -140,9 +142,7 @@ Use the following context from the knowledge base to answer questions. If the an
 Knowledge Base Context:
 {context}
 
-Be concise and direct.
-
-Remember details from our conversation, including information about the user's party members. You can answer questions about their party composition, roles, and gear preferences naturally."""
+Be concise and direct. Remember details from our conversation."""
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(conversation_history)
@@ -346,8 +346,10 @@ async def recommend_gear(ctx, *, args: str):
             party_context += "\n"
 
         # Create prompt for the LLM
-        prompt = f"""You are a game master helping distribute loot fairly and strategically.
+        prompt = f"""You are a game master helping distribute loot fairly and strategically with access to a knowledge base about the RPG Cyberpunk RED.
+Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020) unless it is explicitly in the knowledge base.
 
+Party Context:
 {party_context}
 
 Loot Description:
@@ -358,6 +360,7 @@ Please parse the loot description to identify individual items, then recommend h
 2. Each character's stated gear preferences
 3. Fair distribution when preferences conflict
 4. Overall party effectiveness
+5. The market value of the item if no clear preference can be determined
 
 Provide your recommendations in this format:
 **[Character Name]** ([Role])
@@ -365,7 +368,7 @@ Provide your recommendations in this format:
   - [Item 2]
   ...
 
-If any items don't have a clear match, list them under "Unclaimed Items" at the end."""
+"""
 
         try:
             response = openai_client.chat.completions.create(
