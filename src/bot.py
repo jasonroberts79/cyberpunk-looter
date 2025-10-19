@@ -132,8 +132,7 @@ async def ask_question(ctx, *, question: str):
                 "model": OPENAI_MODEL,
                 "previous_response_id": previous_response_id,
                 "input": input_messages,
-                "temperature": 0.6,
-                "max_completion_tokens": 15000,
+                "temperature": 0.6
             }
         else:
             # Start new conversation - send full context
@@ -168,8 +167,7 @@ Be concise and direct. Remember details from our conversation."""
             api_params = {
                 "model": OPENAI_MODEL,
                 "input": input_messages,
-                "temperature": 0.6,
-                "max_completion_tokens": 15000,
+                "temperature": 0.6
             }
 
         try:
@@ -297,8 +295,7 @@ Provide your recommendations in this format:
                 "model": OPENAI_MODEL,
                 "previous_response_id": previous_response_id,
                 "input": input_messages,
-                "temperature": 0.7,
-                "max_completion_tokens": 2000,
+                "temperature": 0.7
             }
         else:
             # Start new conversation - include system prompt
@@ -310,8 +307,7 @@ Provide your recommendations in this format:
             api_params = {
                 "model": OPENAI_MODEL,
                 "input": input_messages,
-                "temperature": 0.7,
-                "max_completion_tokens": 2000,
+                "temperature": 0.7
             }
 
         try:
