@@ -25,7 +25,8 @@ from agentic_handler import (
 
 load_dotenv()
 
-logging.getLogger("discord.gateway").setLevel(logging.ERROR)
+logger = logging.getLogger("cyberpunk.ai.bot")
+logger.setLevel(logging.INFO)
 
 game_context = "You have with access to a knowledge base about the RPG Cyberpunk RED. Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020)."
 
@@ -303,13 +304,13 @@ Be concise and direct. Remember details from our conversation."""
             error_log.extend(["", "Full Traceback:", traceback.format_exc(), "=" * 80])
 
             # Log the complete error information
-            logging.error("\n".join(error_log))
+            logger.error("\n".join(error_log))
 
             # Check if the error is due to an invalid/expired response ID
             if previous_response_id and (
                 "response" in error_msg.lower() or "not found" in error_msg.lower()
             ):
-                logging.info(
+                logger.info(
                     "Identified as expired/invalid response ID error. Clearing and asking user to retry."
                 )
                 # Clear the invalid response ID and retry
