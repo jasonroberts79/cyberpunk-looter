@@ -250,7 +250,7 @@ async def ask_question(ctx, *, question: str):
             # Save the response ID for future continuations
             memory_system.set_last_response_id(user_id, response.id)
 
-            answer = response.output_text
+            answer = response.output[0].content[0].text
             if not answer:
                 answer = "I couldn't generate a response."
 

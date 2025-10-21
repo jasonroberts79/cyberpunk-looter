@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.11-alpine AS builder
+FROM ghcr.io/astral-sh/uv:python3.11-trixie-slim AS builder
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
@@ -18,7 +18,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
-FROM python:3.11-alpine
+FROM python:3.11-slim-trixie
 
 ENV PYTHONUNBUFFERED=1
 
