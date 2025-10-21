@@ -250,7 +250,16 @@ async def ask_question(ctx, *, question: str):
             # Save the response ID for future continuations
             memory_system.set_last_response_id(user_id, response.id)
 
-            answer = response.output[0].content[0].text
+            # Debug: Print all response object fields
+            print("=" * 80)
+            print("DEBUG: Response object fields:")
+            print(f"response.output_text: {response.output_text}")
+            print(f"response.incomplete_details: {response.incomplete_details}")
+            print(f"response.status: {response.status}")
+            print(f"All attributes: {dir(response)}")
+            print("=" * 80)
+
+            answer = response.output_text
             if not answer:
                 answer = "I couldn't generate a response."
 
