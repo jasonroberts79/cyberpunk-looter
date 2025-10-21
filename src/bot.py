@@ -256,14 +256,15 @@ async def ask_question(ctx, *, question: str):
             print(f"response.output_text: {response.output_text}")
             print(f"response.incomplete_details: {response.incomplete_details}")
             print(f"response.status: {response.status}")
+            print(f"response.error: {response.error}")
             print(f"All attributes: {dir(response)}")
             print("=" * 80)
 
             answer = response.output_text
             if not answer:
                 answer = "I couldn't generate a response."
-
-            memory_system.add_to_short_term(user_id, "assistant", answer)
+            else:
+                memory_system.add_to_short_term(user_id, "user", answer)
 
             if len(answer) > 2000:
                 file = io.BytesIO(answer.encode("utf-8"))
