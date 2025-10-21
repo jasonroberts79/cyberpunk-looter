@@ -2,7 +2,6 @@ import os
 import io
 import sys
 import socket
-import logging
 import traceback
 import discord
 from discord.ext import commands
@@ -24,9 +23,6 @@ from agentic_handler import (
 )
 
 load_dotenv()
-
-logger = logging.getLogger("cyberpunk.ai.bot")
-logger.setLevel(logging.INFO)
 
 game_context = "You have with access to a knowledge base about the RPG Cyberpunk RED. Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020)."
 
@@ -304,15 +300,13 @@ Be concise and direct. Remember details from our conversation."""
             error_log.extend(["", "Full Traceback:", traceback.format_exc(), "=" * 80])
 
             # Log the complete error information
-            logger.error("\n".join(error_log))
+            print("\n".join(error_log))
 
             # Check if the error is due to an invalid/expired response ID
             if previous_response_id and (
                 "response" in error_msg.lower() or "not found" in error_msg.lower()
             ):
-                logger.info(
-                    "Identified as expired/invalid response ID error. Clearing and asking user to retry."
-                )
+                print("Identified as expired/invalid response ID error. Clearing and asking user to retry.")
                 # Clear the invalid response ID and retry
                 memory_system.set_last_response_id(user_id, "")
                 await ctx.send("Previous conversation expired. Starting fresh...")
