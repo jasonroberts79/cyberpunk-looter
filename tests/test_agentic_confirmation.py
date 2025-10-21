@@ -1,6 +1,5 @@
 import pytest
 import time
-from unittest.mock import Mock, AsyncMock
 from src.agentic_handler import (
     pending_confirmations,
     add_pending_confirmation,
@@ -119,7 +118,9 @@ def test_get_tool_definitions_structure():
 def test_add_party_character_tool_schema():
     """Test correct parameters (name required, role required, gear_preferences optional)."""
     tools = get_tool_definitions()
-    add_char_tool = next(t for t in tools if t["function"]["name"] == "add_party_character")
+    add_char_tool = next(
+        t for t in tools if t["function"]["name"] == "add_party_character"
+    )
 
     assert add_char_tool is not None
     function = add_char_tool["function"]
@@ -139,7 +140,9 @@ def test_add_party_character_tool_schema():
 def test_remove_party_character_tool_schema():
     """Test correct parameters (name required)."""
     tools = get_tool_definitions()
-    remove_char_tool = next(t for t in tools if t["function"]["name"] == "remove_party_character")
+    remove_char_tool = next(
+        t for t in tools if t["function"]["name"] == "remove_party_character"
+    )
 
     assert remove_char_tool is not None
     function = remove_char_tool["function"]
@@ -153,7 +156,9 @@ def test_remove_party_character_tool_schema():
 def test_view_party_members_tool_schema():
     """Test no required parameters."""
     tools = get_tool_definitions()
-    view_party_tool = next(t for t in tools if t["function"]["name"] == "view_party_members")
+    view_party_tool = next(
+        t for t in tools if t["function"]["name"] == "view_party_members"
+    )
 
     assert view_party_tool is not None
     function = view_party_tool["function"]
@@ -188,7 +193,7 @@ def test_generate_confirmation_message_add_character():
     parameters = {
         "name": "V",
         "role": "Solo",
-        "gear_preferences": ["Assault Rifles", "Body Armor"]
+        "gear_preferences": ["Assault Rifles", "Body Armor"],
     }
     message = generate_confirmation_message("add_party_character", parameters)
 
@@ -226,7 +231,7 @@ def test_generate_confirmation_message_recommend_gear():
     """Test includes loot description."""
     parameters = {
         "loot_description": "2 SMGs and body armor",
-        "excluded_characters": ["V"]
+        "excluded_characters": ["V"],
     }
     message = generate_confirmation_message("recommend_gear", parameters)
 

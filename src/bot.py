@@ -3,6 +3,7 @@ import io
 import sys
 import socket
 import logging
+import traceback
 import discord
 from discord.ext import commands
 from openai import OpenAI
@@ -156,14 +157,19 @@ async def on_reaction_add(reaction, user):
     # Process based on reaction
     if str(reaction.emoji) == "👍":
         await handle_approval(
-            reaction.message, confirmation,
-            memory_system, graphrag_system, openai_client, OPENAI_MODEL, bot
+            reaction.message,
+            confirmation,
+            memory_system,
+            graphrag_system,
+            openai_client,
+            OPENAI_MODEL,
+            bot,
         )
     elif str(reaction.emoji) == "👎":
         await handle_rejection(reaction.message, confirmation)
 
 
-@bot.command(name="ai", help="Ask a question using the knowledge base")
+@bot.command(name="ai", help="Interact with the AI")
 async def ask_question(ctx, *, question: str):
     if not graphrag_system or not memory_system or not openai_client:
         await ctx.send("Bot is still initializing. Please wait...")
@@ -240,8 +246,14 @@ Be concise and direct. Remember details from our conversation."""
 
             # Handle tool calls if present
             handled = await handle_tool_calls(
-                ctx, response, user_id, openai_client,
-                memory_system, graphrag_system, OPENAI_MODEL, bot
+                ctx,
+                response,
+                user_id,
+                openai_client,
+                memory_system,
+                graphrag_system,
+                OPENAI_MODEL,
+                bot,
             )
             if handled:
                 return
@@ -264,19 +276,49 @@ Be concise and direct. Remember details from our conversation."""
 
         except Exception as e:
             error_msg = str(e)
+
+            # Build detailed error log
+            error_log = [
+                "=" * 80,
+                "ERROR in !ai command",
+                f"User: {ctx.author.name} (ID: {user_id})",
+                f"Question: {question}",
+                f"Model: {OPENAI_MODEL}",
+                f"Previous Response ID: {previous_response_id if previous_response_id else 'None (new conversation)'}",
+                f"Error Type: {type(e).__name__}",
+                f"Error Message: {error_msg}",
+                "",
+                "API Parameters:",
+                f"  - Model: {api_params.get('model')}",
+                f"  - Temperature: {api_params.get('temperature')}",
+                f"  - Tools: {len(get_tool_definitions())} tool definitions",
+                f"  - Input Messages: {len(api_params.get('input', []))} messages",
+            ]
+
+            if "previous_response_id" in api_params:
+                error_log.append(
+                    f"  - Using previous_response_id: {api_params['previous_response_id']}"
+                )
+
+            error_log.extend(["", "Full Traceback:", traceback.format_exc(), "=" * 80])
+
+            # Log the complete error information
+            logging.error("\n".join(error_log))
+
             # Check if the error is due to an invalid/expired response ID
             if previous_response_id and (
                 "response" in error_msg.lower() or "not found" in error_msg.lower()
             ):
-                print(f"Response ID expired or invalid, retrying without it: {e}")
+                logging.info(
+                    "Identified as expired/invalid response ID error. Clearing and asking user to retry."
+                )
                 # Clear the invalid response ID and retry
                 memory_system.set_last_response_id(user_id, "")
                 await ctx.send("Previous conversation expired. Starting fresh...")
                 # Retry the command would require recursion, so just inform the user
                 await ctx.send("Please try your question again.")
             else:
-                await ctx.send(f"Error generating response: {error_msg}")
-                print(f"Error: {e}")
+                await ctx.send(f"Error: {error_msg}")
 
 
 @bot.command(

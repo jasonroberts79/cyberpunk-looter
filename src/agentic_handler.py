@@ -1,13 +1,15 @@
 import time
 import json
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 import discord
 
 # Global state for pending confirmations
 pending_confirmations: Dict[str, Dict] = {}
 
 
-def add_pending_confirmation(message_id: str, user_id: str, action: str, parameters: Dict, channel_id: str = None) -> None:
+def add_pending_confirmation(
+    message_id: str, user_id: str, action: str, parameters: Dict, channel_id: str = None
+) -> None:
     """Add a pending confirmation to the global state."""
     pending_confirmations[message_id] = {
         "user_id": user_id,
@@ -49,23 +51,21 @@ def get_tool_definitions() -> List[Dict]:
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "The character's name"
+                            "description": "The character's name",
                         },
                         "role": {
                             "type": "string",
-                            "description": "The character's role (e.g., Solo, Netrunner, Fixer, Rockerboy, etc.)"
+                            "description": "The character's role (e.g., Solo, Netrunner, Fixer, Rockerboy, etc.)",
                         },
                         "gear_preferences": {
                             "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
+                            "items": {"type": "string"},
                             "description": "Optional list of gear types the character prefers (e.g., 'Assault Rifles', 'Body Armor', 'Cyberware')",
-                        }
+                        },
                     },
-                    "required": ["name", "role"]
-                }
-            }
+                    "required": ["name", "role"],
+                },
+            },
         },
         {
             "type": "function",
@@ -77,24 +77,20 @@ def get_tool_definitions() -> List[Dict]:
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "The name of the character to remove"
+                            "description": "The name of the character to remove",
                         }
                     },
-                    "required": ["name"]
-                }
-            }
+                    "required": ["name"],
+                },
+            },
         },
         {
             "type": "function",
             "function": {
                 "name": "view_party_members",
                 "description": "View all current party members with their roles and gear preferences.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                }
-            }
+                "parameters": {"type": "object", "properties": {}, "required": []},
+            },
         },
         {
             "type": "function",
@@ -106,20 +102,18 @@ def get_tool_definitions() -> List[Dict]:
                     "properties": {
                         "loot_description": {
                             "type": "string",
-                            "description": "Natural language description of the loot to distribute (e.g., 'Assault Rifle, Body Armor, Neural Processor' or 'We got 2 SMGs from the ganger')"
+                            "description": "Natural language description of the loot to distribute (e.g., 'Assault Rifle, Body Armor, Neural Processor' or 'We got 2 SMGs from the ganger')",
                         },
                         "excluded_characters": {
                             "type": "array",
-                            "items": {
-                                "type": "string"
-                            },
+                            "items": {"type": "string"},
                             "description": "Optional list of character names to exclude from gear distribution",
-                        }
+                        },
                     },
-                    "required": ["loot_description"]
-                }
-            }
-        }
+                    "required": ["loot_description"],
+                },
+            },
+        },
     ]
 
 
@@ -150,7 +144,7 @@ I'll remove **{name}** from your party.
 👍 Confirm  👎 Cancel"""
 
     elif action == "view_party_members":
-        return f"""📋 **Confirmation Required**
+        return """📋 **Confirmation Required**
 
 I'll show you all party members.
 
@@ -183,12 +177,17 @@ def has_tool_calls(response) -> bool:
     """Check if Grok response contains tool calls."""
     try:
         # Check for tool_calls attribute in the response
-        if hasattr(response, 'tool_calls') and response.tool_calls:
+        if hasattr(response, "tool_calls") and response.tool_calls:
             return True
         # Check in choices structure (OpenAI format)
-        if hasattr(response, 'choices') and response.choices:
-            if hasattr(response.choices[0], 'message') and hasattr(response.choices[0].message, 'tool_calls'):
-                return response.choices[0].message.tool_calls is not None and len(response.choices[0].message.tool_calls) > 0
+        if hasattr(response, "choices") and response.choices:
+            if hasattr(response.choices[0], "message") and hasattr(
+                response.choices[0].message, "tool_calls"
+            ):
+                return (
+                    response.choices[0].message.tool_calls is not None
+                    and len(response.choices[0].message.tool_calls) > 0
+                )
         return False
     except (AttributeError, IndexError):
         return False
@@ -199,26 +198,41 @@ def extract_tool_calls(response) -> List[Dict]:
     tool_calls = []
     try:
         # Try direct tool_calls attribute
-        if hasattr(response, 'tool_calls') and response.tool_calls:
+        if hasattr(response, "tool_calls") and response.tool_calls:
             for tool_call in response.tool_calls:
-                tool_calls.append({
-                    'name': tool_call.function.name,
-                    'arguments': tool_call.function.arguments
-                })
+                tool_calls.append(
+                    {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments,
+                    }
+                )
         # Try choices structure (OpenAI format)
-        elif hasattr(response, 'choices') and response.choices:
-            if hasattr(response.choices[0], 'message') and hasattr(response.choices[0].message, 'tool_calls'):
+        elif hasattr(response, "choices") and response.choices:
+            if hasattr(response.choices[0], "message") and hasattr(
+                response.choices[0].message, "tool_calls"
+            ):
                 for tool_call in response.choices[0].message.tool_calls:
-                    tool_calls.append({
-                        'name': tool_call.function.name,
-                        'arguments': tool_call.function.arguments
-                    })
+                    tool_calls.append(
+                        {
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments,
+                        }
+                    )
     except (AttributeError, IndexError):
         pass
     return tool_calls
 
 
-async def handle_tool_calls(ctx, response, user_id: str, openai_client, memory_system, graphrag_system, OPENAI_MODEL: str, bot) -> bool:
+async def handle_tool_calls(
+    ctx,
+    response,
+    user_id: str,
+    openai_client,
+    memory_system,
+    graphrag_system,
+    OPENAI_MODEL: str,
+    bot,
+) -> bool:
     """Handle tool calls from Grok response. Returns True if tool calls were handled."""
     # Check if response has tool calls
     if not has_tool_calls(response):
@@ -231,8 +245,8 @@ async def handle_tool_calls(ctx, response, user_id: str, openai_client, memory_s
     for tool_call in tool_calls:
         try:
             # Extract action name and parameters
-            action = tool_call['name']
-            arguments_str = tool_call['arguments']
+            action = tool_call["name"]
+            arguments_str = tool_call["arguments"]
 
             # Parse arguments (they come as JSON string)
             if isinstance(arguments_str, str):
@@ -256,7 +270,7 @@ async def handle_tool_calls(ctx, response, user_id: str, openai_client, memory_s
                 user_id=user_id,
                 action=action,
                 parameters=parameters,
-                channel_id=str(ctx.channel.id)
+                channel_id=str(ctx.channel.id),
             )
 
         except (KeyError, TypeError, json.JSONDecodeError) as e:
@@ -288,9 +302,9 @@ async def handle_timeout(message_id: str, confirmation: Dict, bot) -> None:
         original_content = message.content
 
         # Apply strikethrough to all lines
-        lines = original_content.split('\n')
+        lines = original_content.split("\n")
         strikethrough_lines = [f"~~{line}~~" for line in lines]
-        strikethrough_content = '\n'.join(strikethrough_lines)
+        strikethrough_content = "\n".join(strikethrough_lines)
 
         # Append timeout message
         new_content = f"{strikethrough_content}\n\n⏱️ Request timed out"
@@ -323,7 +337,15 @@ async def check_and_cleanup_timeouts(user_id: str, bot) -> None:
             await handle_timeout(message_id, confirmation, bot)
 
 
-async def execute_recommend_gear(user_id: str, loot_description: str, excluded_characters: List[str], memory_system, graphrag_system, openai_client, OPENAI_MODEL: str) -> str:
+async def execute_recommend_gear(
+    user_id: str,
+    loot_description: str,
+    excluded_characters: List[str],
+    memory_system,
+    graphrag_system,
+    openai_client,
+    OPENAI_MODEL: str,
+) -> str:
     """Execute gear recommendation and return the recommendation text."""
     game_context = "You have with access to a knowledge base about the RPG Cyberpunk RED. Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020)."
 
@@ -337,7 +359,9 @@ async def execute_recommend_gear(user_id: str, loot_description: str, excluded_c
     # Filter out excluded characters
     if excluded_characters:
         excluded_lower = [name.lower() for name in excluded_characters]
-        all_chars = [char for char in all_chars if char["name"].lower() not in excluded_lower]
+        all_chars = [
+            char for char in all_chars if char["name"].lower() not in excluded_lower
+        ]
 
     if not all_chars:
         return "No party members available after exclusions."
@@ -431,7 +455,15 @@ Provide your recommendations in this format:
             return f"Error generating recommendations: {error_msg}"
 
 
-async def execute_tool_action(action: str, parameters: Dict, user_id: str, memory_system, graphrag_system, openai_client, OPENAI_MODEL: str) -> tuple[bool, str]:
+async def execute_tool_action(
+    action: str,
+    parameters: Dict,
+    user_id: str,
+    memory_system,
+    graphrag_system,
+    openai_client,
+    OPENAI_MODEL: str,
+) -> tuple[bool, str]:
     """Execute a tool action and return (success, message)."""
     try:
         if action == "add_party_character":
@@ -441,7 +473,9 @@ async def execute_tool_action(action: str, parameters: Dict, user_id: str, memor
             gear_preferences = parameters.get("gear_preferences", [])
 
             # Call memory_system method
-            is_new = memory_system.add_party_character(user_id, name, role, gear_preferences)
+            is_new = memory_system.add_party_character(
+                user_id, name, role, gear_preferences
+            )
 
             # Generate success message
             if is_new:
@@ -480,7 +514,9 @@ async def execute_tool_action(action: str, parameters: Dict, user_id: str, memor
                 msg += f"**{char['name']}**\n"
                 msg += f"• Role: {char['role']}\n"
                 if char.get("gear_preferences"):
-                    msg += f"• Gear Preferences: {', '.join(char['gear_preferences'])}\n"
+                    msg += (
+                        f"• Gear Preferences: {', '.join(char['gear_preferences'])}\n"
+                    )
                 else:
                     msg += "• Gear Preferences: None\n"
                 msg += "\n"
@@ -494,8 +530,13 @@ async def execute_tool_action(action: str, parameters: Dict, user_id: str, memor
 
             # Call execute_recommend_gear
             recommendation = await execute_recommend_gear(
-                user_id, loot_description, excluded_characters,
-                memory_system, graphrag_system, openai_client, OPENAI_MODEL
+                user_id,
+                loot_description,
+                excluded_characters,
+                memory_system,
+                graphrag_system,
+                openai_client,
+                OPENAI_MODEL,
             )
 
             return (True, recommendation)
@@ -507,7 +548,15 @@ async def execute_tool_action(action: str, parameters: Dict, user_id: str, memor
         return (False, f"Error executing action: {str(e)}")
 
 
-async def handle_approval(message: discord.Message, confirmation: Dict, memory_system, graphrag_system, openai_client, OPENAI_MODEL: str, bot) -> None:
+async def handle_approval(
+    message: discord.Message,
+    confirmation: Dict,
+    memory_system,
+    graphrag_system,
+    openai_client,
+    OPENAI_MODEL: str,
+    bot,
+) -> None:
     """Handle approval of a confirmation."""
     try:
         # Mark confirmation as processed
@@ -520,8 +569,13 @@ async def handle_approval(message: discord.Message, confirmation: Dict, memory_s
 
         # Call execute_tool_action
         success, result_message = await execute_tool_action(
-            action, parameters, user_id,
-            memory_system, graphrag_system, openai_client, OPENAI_MODEL
+            action,
+            parameters,
+            user_id,
+            memory_system,
+            graphrag_system,
+            openai_client,
+            OPENAI_MODEL,
         )
 
         # Send success message as reply

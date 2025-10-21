@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, AsyncMock, MagicMock
 from src.agentic_handler import (
     pending_confirmations,
     handle_tool_calls,
@@ -50,13 +50,11 @@ def mock_grok_client():
 def mock_memory_system():
     """Returns mock MemorySystem."""
     memory = Mock()
-    memory.list_party_characters = Mock(return_value=[
-        {
-            "name": "V",
-            "role": "Solo",
-            "gear_preferences": ["Assault Rifles"]
-        }
-    ])
+    memory.list_party_characters = Mock(
+        return_value=[
+            {"name": "V", "role": "Solo", "gear_preferences": ["Assault Rifles"]}
+        ]
+    )
     memory.add_party_character = Mock(return_value=True)
     memory.remove_party_character = Mock(return_value=True)
     memory.get_last_response_id = Mock(return_value=None)
@@ -77,8 +75,11 @@ def mock_graphrag_system():
 
 @pytest.mark.asyncio
 async def test_handle_tool_calls_with_add_character(
-    cleanup_confirmations, mock_discord_ctx, mock_grok_client,
-    mock_memory_system, mock_graphrag_system
+    cleanup_confirmations,
+    mock_discord_ctx,
+    mock_grok_client,
+    mock_memory_system,
+    mock_graphrag_system,
 ):
     """Mock response with add_party_character tool call, verify confirmation sent."""
     # Create mock response with tool call
@@ -91,7 +92,9 @@ async def test_handle_tool_calls_with_add_character(
     tool_call = Mock()
     tool_call.function = Mock()
     tool_call.function.name = "add_party_character"
-    tool_call.function.arguments = '{"name": "V", "role": "Solo", "gear_preferences": ["Assault Rifles"]}'
+    tool_call.function.arguments = (
+        '{"name": "V", "role": "Solo", "gear_preferences": ["Assault Rifles"]}'
+    )
 
     response.choices[0].message.tool_calls = [tool_call]
 
@@ -106,9 +109,14 @@ async def test_handle_tool_calls_with_add_character(
 
     # Call handler
     handled = await handle_tool_calls(
-        mock_discord_ctx, response, "12345",
-        mock_grok_client, mock_memory_system, mock_graphrag_system,
-        "grok-4-fast", bot
+        mock_discord_ctx,
+        response,
+        "12345",
+        mock_grok_client,
+        mock_memory_system,
+        mock_graphrag_system,
+        "grok-4-fast",
+        bot,
     )
 
     # Verify
@@ -121,8 +129,11 @@ async def test_handle_tool_calls_with_add_character(
 
 @pytest.mark.asyncio
 async def test_handle_tool_calls_with_remove_character(
-    cleanup_confirmations, mock_discord_ctx, mock_grok_client,
-    mock_memory_system, mock_graphrag_system
+    cleanup_confirmations,
+    mock_discord_ctx,
+    mock_grok_client,
+    mock_memory_system,
+    mock_graphrag_system,
 ):
     """Test remove action tool call."""
     # Create mock response with tool call
@@ -146,9 +157,14 @@ async def test_handle_tool_calls_with_remove_character(
     bot = Mock()
 
     handled = await handle_tool_calls(
-        mock_discord_ctx, response, "12345",
-        mock_grok_client, mock_memory_system, mock_graphrag_system,
-        "grok-4-fast", bot
+        mock_discord_ctx,
+        response,
+        "12345",
+        mock_grok_client,
+        mock_memory_system,
+        mock_graphrag_system,
+        "grok-4-fast",
+        bot,
     )
 
     assert handled is True
@@ -158,8 +174,11 @@ async def test_handle_tool_calls_with_remove_character(
 
 @pytest.mark.asyncio
 async def test_handle_tool_calls_no_tool_calls(
-    cleanup_confirmations, mock_discord_ctx, mock_grok_client,
-    mock_memory_system, mock_graphrag_system
+    cleanup_confirmations,
+    mock_discord_ctx,
+    mock_grok_client,
+    mock_memory_system,
+    mock_graphrag_system,
 ):
     """Verify returns False when response has no tool calls."""
     response = Mock()
@@ -169,9 +188,14 @@ async def test_handle_tool_calls_no_tool_calls(
     bot = Mock()
 
     handled = await handle_tool_calls(
-        mock_discord_ctx, response, "12345",
-        mock_grok_client, mock_memory_system, mock_graphrag_system,
-        "grok-4-fast", bot
+        mock_discord_ctx,
+        response,
+        "12345",
+        mock_grok_client,
+        mock_memory_system,
+        mock_graphrag_system,
+        "grok-4-fast",
+        bot,
     )
 
     assert handled is False
@@ -180,8 +204,11 @@ async def test_handle_tool_calls_no_tool_calls(
 
 @pytest.mark.asyncio
 async def test_handle_tool_calls_multiple_tools(
-    cleanup_confirmations, mock_discord_ctx, mock_grok_client,
-    mock_memory_system, mock_graphrag_system
+    cleanup_confirmations,
+    mock_discord_ctx,
+    mock_grok_client,
+    mock_memory_system,
+    mock_graphrag_system,
 ):
     """Verify multiple confirmations created for multiple tool calls."""
     # Create mock response with two tool calls
@@ -212,9 +239,14 @@ async def test_handle_tool_calls_multiple_tools(
     bot = Mock()
 
     handled = await handle_tool_calls(
-        mock_discord_ctx, response, "12345",
-        mock_grok_client, mock_memory_system, mock_graphrag_system,
-        "grok-4-fast", bot
+        mock_discord_ctx,
+        response,
+        "12345",
+        mock_grok_client,
+        mock_memory_system,
+        mock_graphrag_system,
+        "grok-4-fast",
+        bot,
     )
 
     assert handled is True
@@ -250,9 +282,13 @@ async def test_reaction_approval_executes_action(
 
     # Call handler
     await handle_approval(
-        message, confirmation,
-        mock_memory_system, mock_graphrag_system,
-        mock_grok_client, "grok-4-fast", bot
+        message,
+        confirmation,
+        mock_memory_system,
+        mock_graphrag_system,
+        mock_grok_client,
+        "grok-4-fast",
+        bot,
     )
 
     # Verify action was executed
@@ -398,7 +434,9 @@ async def test_check_and_cleanup_timeouts(cleanup_confirmations):
     message2 = Mock(id=222222, content="Message 2", edit=AsyncMock())
 
     channel = Mock()
-    channel.fetch_message = AsyncMock(side_effect=lambda msg_id: message1 if msg_id == 111111 else message2)
+    channel.fetch_message = AsyncMock(
+        side_effect=lambda msg_id: message1 if msg_id == 111111 else message2
+    )
 
     bot = Mock()
     bot.get_channel = Mock(return_value=channel)
@@ -472,8 +510,11 @@ async def test_timeout_removes_from_pending(cleanup_confirmations):
 
 @pytest.mark.asyncio
 async def test_ask_command_with_tool_call_flow(
-    cleanup_confirmations, mock_discord_ctx, mock_grok_client,
-    mock_memory_system, mock_graphrag_system
+    cleanup_confirmations,
+    mock_discord_ctx,
+    mock_grok_client,
+    mock_memory_system,
+    mock_graphrag_system,
 ):
     """Mock full flow from !ask to tool call to confirmation to approval to execution."""
     # This test would require importing and testing the full ask command
@@ -483,9 +524,7 @@ async def test_ask_command_with_tool_call_flow(
 
 
 @pytest.mark.asyncio
-async def test_ask_command_normal_flow_no_tools(
-    mock_grok_client, mock_memory_system
-):
+async def test_ask_command_normal_flow_no_tools(mock_grok_client, mock_memory_system):
     """Verify normal !ask flow still works when no tool calls in response."""
     # Create response without tool calls
     response = Mock()
