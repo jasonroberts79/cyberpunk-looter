@@ -6,8 +6,7 @@ ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-# TODO - figure out how to reconcile needing this locally but not on build/deploy
-# RUN apk add --no-cache libgcc build-base
+RUN apk add --no-cache libgcc build-base
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
