@@ -10,6 +10,17 @@ from dotenv import load_dotenv
 from graphrag_system import GraphRAGSystem
 from memory_system import MemorySystem
 from typing import Optional
+from agentic_handler import (
+    pending_confirmations,
+    get_pending_confirmation,
+    is_timed_out,
+    handle_timeout,
+    handle_approval,
+    handle_rejection,
+    check_and_cleanup_timeouts,
+    handle_tool_calls,
+    get_tool_definitions,
+)
 
 load_dotenv()
 
@@ -24,6 +35,7 @@ def ensure_envvar(var_name: str) -> str:
         print(f"ERROR: Environment variable {var_name} is missing!")
         sys.exit(1)
     return value.strip()
+
 
 DISCORD_TOKEN = ensure_envvar("DISCORD_BOT_TOKEN")
 
@@ -47,6 +59,7 @@ graphrag_system: Optional[GraphRAGSystem] = None
 memory_system: Optional[MemorySystem] = None
 openai_client: Optional[OpenAI] = None
 
+
 def check_internet_connectivity():
     """Check internet connectivity by attempting to connect to google.com"""
     print("Checking internet connectivity...")
@@ -59,6 +72,7 @@ def check_internet_connectivity():
         print(f"✗ No internet connection detected: {e}")
         print("ERROR: Bot requires internet access to function. Exiting...")
         return False
+
 
 @bot.event
 async def on_ready():
@@ -105,13 +119,60 @@ async def on_ready():
     print("Bot is ready!")
 
 
-@bot.command(name="ask", help="Ask a question using the knowledge base")
+@bot.event
+async def on_reaction_add(reaction, user):
+    """Handle confirmation/cancellation via reactions."""
+    # Skip if user is bot
+    if user.bot:
+        return
+
+    # Get message_id
+    message_id = str(reaction.message.id)
+
+    # Check if message_id in pending_confirmations
+    if message_id not in pending_confirmations:
+        return
+
+    # Get confirmation
+    confirmation = get_pending_confirmation(message_id)
+    if not confirmation:
+        return
+
+    # Only original requester can confirm
+    if str(user.id) != confirmation["user_id"]:
+        return
+
+    # Check if already processed
+    if confirmation.get("processed"):
+        # Remove reaction and return
+        await reaction.remove(user)
+        return
+
+    # Check if timed out
+    if is_timed_out(confirmation):
+        await handle_timeout(message_id, confirmation, bot)
+        return
+
+    # Process based on reaction
+    if str(reaction.emoji) == "👍":
+        await handle_approval(
+            reaction.message, confirmation,
+            memory_system, graphrag_system, openai_client, OPENAI_MODEL, bot
+        )
+    elif str(reaction.emoji) == "👎":
+        await handle_rejection(reaction.message, confirmation)
+
+
+@bot.command(name="ai", help="Ask a question using the knowledge base")
 async def ask_question(ctx, *, question: str):
     if not graphrag_system or not memory_system or not openai_client:
         await ctx.send("Bot is still initializing. Please wait...")
         return
 
     user_id = str(ctx.author.id)
+
+    # Check and cleanup timeouts for this user
+    await check_and_cleanup_timeouts(user_id, bot)
 
     async with ctx.typing():
         memory_system.update_long_term(user_id, "interaction", None)
@@ -132,7 +193,9 @@ async def ask_question(ctx, *, question: str):
                 "model": OPENAI_MODEL,
                 "previous_response_id": previous_response_id,
                 "input": input_messages,
-                "temperature": 0.6
+                "temperature": 0.6,
+                "tools": get_tool_definitions(),
+                "tool_choice": "auto",
             }
         else:
             # Start new conversation - send full context
@@ -167,16 +230,26 @@ Be concise and direct. Remember details from our conversation."""
             api_params = {
                 "model": OPENAI_MODEL,
                 "input": input_messages,
-                "temperature": 0.6
+                "temperature": 0.6,
+                "tools": get_tool_definitions(),
+                "tool_choice": "auto",
             }
 
         try:
             response = openai_client.responses.create(**api_params)
 
+            # Handle tool calls if present
+            handled = await handle_tool_calls(
+                ctx, response, user_id, openai_client,
+                memory_system, graphrag_system, OPENAI_MODEL, bot
+            )
+            if handled:
+                return
+
             # Save the response ID for future continuations
             memory_system.set_last_response_id(user_id, response.id)
 
-            answer = response.output_text            
+            answer = response.output_text
             if not answer:
                 answer = "I couldn't generate a response."
 
@@ -192,7 +265,9 @@ Be concise and direct. Remember details from our conversation."""
         except Exception as e:
             error_msg = str(e)
             # Check if the error is due to an invalid/expired response ID
-            if previous_response_id and ("response" in error_msg.lower() or "not found" in error_msg.lower()):
+            if previous_response_id and (
+                "response" in error_msg.lower() or "not found" in error_msg.lower()
+            ):
                 print(f"Response ID expired or invalid, retrying without it: {e}")
                 # Clear the invalid response ID and retry
                 memory_system.set_last_response_id(user_id, "")
@@ -201,135 +276,6 @@ Be concise and direct. Remember details from our conversation."""
                 await ctx.send("Please try your question again.")
             else:
                 await ctx.send(f"Error generating response: {error_msg}")
-                print(f"Error: {e}")
-
-@bot.command(name="recommend_gear", help="Get gear distribution recommendations")
-async def recommend_gear(ctx, *, args: str):
-    """
-    Recommend gear distribution for party members using AI.
-    By default, considers all party members, if you want to exclude someone say so in the prompt.
-    Accepts natural language descriptions of loot.
-
-    Usage: !recommend_gear <loot description>
-    Examples:
-      !recommend_gear Assault Rifle, Body Armor, Neural Processor
-      !recommend_gear We got a heavy pistol and some body armor from the ganger
-      !recommend_gear 2 SMGs and a tech scanner
-    """
-    if not graphrag_system or not memory_system or not openai_client:
-        await ctx.send("Bot is still initializing. Please wait...")
-        return
-
-    user_id = str(ctx.author.id)
-
-    loot_description = args.strip()
-
-    # Validate loot description is not empty
-    if not loot_description:
-        await ctx.send("Please describe the loot to distribute.")
-        return
-
-    # Get all party members
-    all_chars = memory_system.list_party_characters(user_id)
-
-    if not all_chars:
-        await ctx.send(
-            "You don't have any party members registered yet.\n"
-            "Use `!add_character` to add party members first."
-        )
-        return
-
-    context_prompt = f"""Look up information related to this gear: {loot_description}"""
-    context = graphrag_system.get_context_for_query(context_prompt, k=10)
-
-    async with ctx.typing():
-        previous_response_id = memory_system.get_last_response_id(user_id)
-
-        # Build party context for the LLM
-        party_context = "Party Members:\n"
-        for char in all_chars:
-            party_context += f"- {char['name']} ({char['role']})"
-            if char.get('gear_preferences'):
-                party_context += f" - Prefers: {', '.join(char['gear_preferences'])}"
-            party_context += "\n"
-
-        # Create the user prompt
-        user_prompt = f"""Please help distribute this loot among my party members.
-{game_context}
-
-Party Context:
-{party_context}
-
-Loot Description:
-{loot_description}
-
-Use the knowledge base context, if needed, to inform your recommendation:
-{context}
-
-Parse the loot description to identify individual items, then recommend how to distribute them among the party members. Consider:
-1. Character roles and their typical gear needs
-2. Each character's stated gear preferences
-3. Fair distribution when preferences conflict
-4. Overall party effectiveness
-5. The market value of the item if no clear preference can be determined
-
-Provide your recommendations in this format:
-**[Character Name]** ([Role])
-  - [Item 1]
-  - [Item 2]
-  ..."""
-
-        # Build the input based on whether we have a previous conversation
-        if previous_response_id:
-            # Continue existing conversation - only send new message
-            input_messages = [{"role": "user", "content": user_prompt}]
-            api_params = {
-                "model": OPENAI_MODEL,
-                "previous_response_id": previous_response_id,
-                "input": input_messages,
-                "temperature": 0.7
-            }
-        else:
-            # Start new conversation - include system prompt
-            system_prompt = "You are a knowledgeable game master who helps parties distribute loot fairly and strategically with access to a knowledge base about the RPG Cyberpunk RED. Be careful not to make up answers or to use information about the other Cyberpunk games (like Cyberpunk 2077 or Cyberpunk 2020) unless it is explicitly in the knowledge base."
-            input_messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-            api_params = {
-                "model": OPENAI_MODEL,
-                "input": input_messages,
-                "temperature": 0.7
-            }
-
-        try:
-            response = openai_client.responses.create(**api_params)
-
-            # Save the response ID for future continuations
-            memory_system.set_last_response_id(user_id, response.id)
-
-            recommendation = response.output_text
-            if not recommendation:
-                recommendation = "I couldn't generate recommendations."
-
-            if len(recommendation) > 2000:
-                file = io.BytesIO(recommendation.encode("utf-8"))
-                file.seek(0)
-                await ctx.send(file=discord.File(file, filename="gear_recommendations.txt"))
-            else:
-                await ctx.send(recommendation)
-
-        except Exception as e:
-            error_msg = str(e)
-            # Check if the error is due to an invalid/expired response ID
-            if previous_response_id and ("response" in error_msg.lower() or "not found" in error_msg.lower()):
-                print(f"Response ID expired or invalid, retrying without it: {e}")
-                # Clear the invalid response ID and retry
-                memory_system.set_last_response_id(user_id, "")
-                await ctx.send("Previous conversation expired. Starting fresh...")
-                await ctx.send("Please try your command again.")
-            else:
-                await ctx.send(f"Error generating recommendations: {error_msg}")
                 print(f"Error: {e}")
 
 
@@ -380,110 +326,28 @@ async def show_memory(ctx):
     await ctx.send(f"**Your Memory Summary:**\n{summary}")
 
 
-@bot.command(name="add_character", help="Add a character to the party")
-async def add_character(ctx, name: str, role: str, *, gear_prefs: str = ""):
-    """
-    Add or update a party character.
-    Usage: !add_character <name> <role> <gear_preference1, gear_preference2, ...>
-    Example: !add_character "V" Solo "Assault Rifles", "Body Armor"
-    """
-    if not memory_system:
-        await ctx.send("Memory system not initialized.")
-        return
-
-    # Parse gear preferences (comma-separated)
-    gear_preferences = [pref.strip() for pref in gear_prefs.split(",") if pref.strip()]
-
-    user_id = str(ctx.author.id)
-    is_new = memory_system.add_party_character(user_id, name, role, gear_preferences)
-
-    if is_new:
-        msg = f"Character **{name}** added to your party!\n"
-    else:
-        msg = f"Character **{name}** updated!\n"
-
-    msg += f"- Role: {role}\n"
-    if gear_preferences:
-        msg += f"- Gear Preferences: {', '.join(gear_preferences)}"
-    else:
-        msg += "- Gear Preferences: None specified"
-
-    await ctx.send(msg)
-
-
-@bot.command(name="view_party", help="View all party characters")
-async def view_party(ctx):
-    """View all registered party characters"""
-    if not memory_system:
-        await ctx.send("Memory system not initialized.")
-        return
-
-    user_id = str(ctx.author.id)
-    characters = memory_system.list_party_characters(user_id)
-
-    if not characters:
-        await ctx.send("No characters in your party yet. Use `!add_character` to add one!")
-        return
-
-    msg = "**Your Party Members:**\n\n"
-    for char in characters:
-        msg += f"**{char['name']}**\n"
-        msg += f"- Role: {char['role']}\n"
-        if char.get("gear_preferences"):
-            msg += f"- Gear Preferences: {', '.join(char['gear_preferences'])}\n"
-        else:
-            msg += "- Gear Preferences: None\n"
-        msg += "\n"
-
-    if len(msg) > 2000:
-        file = io.BytesIO(msg.encode("utf-8"))
-        file.seek(0)
-        await ctx.send(file=discord.File(file, filename="party.txt"))
-    else:
-        await ctx.send(msg)
-
-
-@bot.command(name="remove_character", help="Remove a character from the party")
-async def remove_character(ctx, *, name: str):
-    """Remove a character from the party"""
-    if not memory_system:
-        await ctx.send("Memory system not initialized.")
-        return
-
-    user_id = str(ctx.author.id)
-    success = memory_system.remove_party_character(user_id, name)
-
-    if success:
-        await ctx.send(f"Character **{name}** has been removed from your party.")
-    else:
-        await ctx.send(f"Character **{name}** not found in your party.")
-
-
 @bot.command(name="help_rag", help="Show available commands")
 async def help_command(ctx):
     help_text = """
 **Available Commands:**
 
 **Knowledge Base:**
-`!ask <question>` - Ask a question using the knowledge graph
+`!ai <question>` - Ask a question using the knowledge graph
 `!reindex` - Update knowledge graph (processes only new/modified files)
 `!clear` - Clear your conversation history
 `!memory` - View your interaction summary
-
-**Party Management:**
-`!add_character <name> <role> <gear_prefs>` - Add/update a party character
-`!view_party` - View all party characters
-`!remove_character <name>` - Remove a character from the party
-`!recommend_gear <loot>` - Get AI gear recommendations (natural language)
-
 `!help_rag` - Show this help message
 
+**Party Management:**
+Use `!ai` to manage your party and get gear recommendations through natural conversation.
+
 **Examples:**
-`!ask What is the main topic in the knowledge base?`
-`!add_character V Solo Assault Rifles, Body Armor`
-`!recommend_gear Assault Rifle, Neural Processor, Body Armor`
-`!recommend_gear We got 2 SMGs and some cyberware from the ganger boss`
-`!recommend_gear Heavy Pistol, Tech Scanner, and Scrambler`
+`!ai What is the main topic in the knowledge base?`
+`!ai Can you add V to my party? He's a Solo who likes assault rifles`
+`!ai Please remove Johnny from the party`
+`!ai Show me all my party members`
+`!ai We found 2 SMGs and body armor, how should we distribute it?`
+`!ai Recommend gear for the assault rifle and neural processor, but exclude V`
 
 **GraphRAG Features:**
 - Vector similarity search with graph-enhanced context
@@ -493,11 +357,11 @@ async def help_command(ctx):
 - Incremental indexing (skips unchanged files)
 
 **Party & Gear Features:**
-- Store party character data (name, role, gear preferences)
+- Add, remove, and view party characters through natural language
 - AI-powered gear distribution recommendations
-- Natural language loot descriptions (e.g., "2 SMGs and body armor")
-- Considers all party members by default
-- Optional exclusion of specific members from distribution
+- Stores party character data (name, role, gear preferences)
+- Natural language loot descriptions
+- Confirmation system for all party actions
 - Context-aware recommendations based on roles and preferences
     """
     await ctx.send(help_text)

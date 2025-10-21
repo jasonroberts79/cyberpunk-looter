@@ -10,6 +10,7 @@ blackhand = "Morgan Blackhand"
 johnny = "Johnny Silverhand"
 rogue = "Rogue"
 
+
 @pytest.fixture
 def mock_storage():
     """Mock AppStorage for testing"""
@@ -32,13 +33,22 @@ def test_get_all_party_members_default(memory_system):
 
     # Add multiple characters
     memory_system.add_party_character(
-        user_id=user_id, character_name=blackhand, role="Solo", gear_preferences=["Shoulder arms"]
+        user_id=user_id,
+        character_name=blackhand,
+        role="Solo",
+        gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name=johnny, role="Rockerboy", gear_preferences=["Handguns"]
+        user_id=user_id,
+        character_name=johnny,
+        role="Rockerboy",
+        gear_preferences=["Handguns"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name="Rogue", role="Rockerboy", gear_preferences=["eddies"]
+        user_id=user_id,
+        character_name="Rogue",
+        role="Rockerboy",
+        gear_preferences=["eddies"],
     )
 
     # Get all characters
@@ -56,10 +66,16 @@ def test_exclude_single_character(memory_system):
 
     # Add multiple characters
     memory_system.add_party_character(
-        user_id=user_id, character_name=blackhand, role="Solo", gear_preferences=["Shoulder arms"]
+        user_id=user_id,
+        character_name=blackhand,
+        role="Solo",
+        gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name=johnny, role="Rockerboy", gear_preferences=["Handguns"]
+        user_id=user_id,
+        character_name=johnny,
+        role="Rockerboy",
+        gear_preferences=["Handguns"],
     )
     memory_system.add_party_character(
         user_id=user_id, character_name=rogue, role="Fixer", gear_preferences=["eddies"]
@@ -70,7 +86,9 @@ def test_exclude_single_character(memory_system):
     exclude_chars = [blackhand]
     excluded_lower = [name.lower() for name in exclude_chars]
 
-    present_chars = [char for char in all_chars if char["name"].lower() not in excluded_lower]
+    present_chars = [
+        char for char in all_chars if char["name"].lower() not in excluded_lower
+    ]
 
     assert len(present_chars) == 2
     assert not any(c["name"] == blackhand for c in present_chars)
@@ -84,10 +102,16 @@ def test_exclude_case_insensitive(memory_system):
 
     # Add characters with mixed case names
     memory_system.add_party_character(
-        user_id=user_id, character_name=blackhand, role="Solo", gear_preferences=["Shoulder arms"]
+        user_id=user_id,
+        character_name=blackhand,
+        role="Solo",
+        gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name=johnny, role="Rockerboy", gear_preferences=["Handguns"]
+        user_id=user_id,
+        character_name=johnny,
+        role="Rockerboy",
+        gear_preferences=["Handguns"],
     )
 
     # Simulate excluding with different case
@@ -95,7 +119,9 @@ def test_exclude_case_insensitive(memory_system):
     exclude_chars = [blackhand]  # lowercase
     excluded_lower = [name.lower() for name in exclude_chars]
 
-    present_chars = [char for char in all_chars if char["name"].lower() not in excluded_lower]
+    present_chars = [
+        char for char in all_chars if char["name"].lower() not in excluded_lower
+    ]
 
     assert len(present_chars) == 1
     assert not any(c["name"] == blackhand for c in present_chars)
@@ -108,10 +134,16 @@ def test_exclude_nonexistent_character(memory_system):
 
     # Add characters
     memory_system.add_party_character(
-        user_id=user_id, character_name=blackhand, role="Solo", gear_preferences=["Shoulder arms"]
+        user_id=user_id,
+        character_name=blackhand,
+        role="Solo",
+        gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name=johnny, role="Rockerboy", gear_preferences=["Handguns"]
+        user_id=user_id,
+        character_name=johnny,
+        role="Rockerboy",
+        gear_preferences=["Handguns"],
     )
 
     # Simulate excluding a nonexistent character
@@ -119,7 +151,9 @@ def test_exclude_nonexistent_character(memory_system):
     exclude_chars = ["NonExistent"]
     excluded_lower = [name.lower() for name in exclude_chars]
 
-    present_chars = [char for char in all_chars if char["name"].lower() not in excluded_lower]
+    present_chars = [
+        char for char in all_chars if char["name"].lower() not in excluded_lower
+    ]
 
     # Should still have all characters
     assert len(present_chars) == 2
@@ -133,10 +167,16 @@ def test_exclude_all_characters(memory_system):
 
     # Add characters
     memory_system.add_party_character(
-        user_id=user_id, character_name=blackhand, role="Solo", gear_preferences=["Shoulder arms"]
+        user_id=user_id,
+        character_name=blackhand,
+        role="Solo",
+        gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name=johnny, role="Rockerboy", gear_preferences=["Handguns"]
+        user_id=user_id,
+        character_name=johnny,
+        role="Rockerboy",
+        gear_preferences=["Handguns"],
     )
 
     # Simulate excluding all characters
@@ -144,6 +184,8 @@ def test_exclude_all_characters(memory_system):
     exclude_chars = [blackhand, johnny]
     excluded_lower = [name.lower() for name in exclude_chars]
 
-    present_chars = [char for char in all_chars if char["name"].lower() not in excluded_lower]
+    present_chars = [
+        char for char in all_chars if char["name"].lower() not in excluded_lower
+    ]
 
     assert len(present_chars) == 0
