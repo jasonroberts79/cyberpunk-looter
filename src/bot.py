@@ -9,7 +9,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from graphrag_system import GraphRAGSystem
 from memory_system import MemorySystem
-from typing import Optional
+from typing import Optional, cast, List, Any
 from agentic_handler import (
     pending_confirmations,
     get_pending_confirmation,
@@ -29,9 +29,10 @@ game_context = "You have with access to a knowledge base about the RPG Cyberpunk
 
 def ensure_envvar(var_name: str) -> str:
     value = os.getenv(var_name)
-    if not value:
+    if value is None or value == "":
         print(f"ERROR: Environment variable {var_name} is missing!")
         sys.exit(1)
+    assert value is not None  # Type narrowing for type checker
     return value.strip()
 
 
@@ -239,7 +240,7 @@ Be concise and direct. Remember details from our conversation."""
             }
 
         try:
-            response = openai_client.responses.create(**api_params)
+            response = openai_client.responses.create(**api_params)  # type: ignore[arg-type]
 
             # Handle tool calls if present
             handled = await handle_tool_calls(
@@ -275,6 +276,7 @@ Be concise and direct. Remember details from our conversation."""
             error_msg = str(e)
 
             # Build detailed error log
+            input_messages = cast(List[Any], api_params.get('input', []))
             error_log = [
                 "=" * 80,
                 "ERROR in !ai command",
@@ -289,7 +291,7 @@ Be concise and direct. Remember details from our conversation."""
                 f"  - Model: {api_params.get('model')}",
                 f"  - Temperature: {api_params.get('temperature')}",
                 f"  - Tools: {len(get_tool_definitions())} tool definitions",
-                f"  - Input Messages: {len(api_params.get('input', []))} messages",
+                f"  - Input Messages: {len(input_messages)} messages",
             ]
 
             if "previous_response_id" in api_params:
@@ -306,7 +308,9 @@ Be concise and direct. Remember details from our conversation."""
             if previous_response_id and (
                 "response" in error_msg.lower() or "not found" in error_msg.lower()
             ):
-                print("Identified as expired/invalid response ID error. Clearing and asking user to retry.")
+                print(
+                    "Identified as expired/invalid response ID error. Clearing and asking user to retry."
+                )
                 # Clear the invalid response ID and retry
                 memory_system.set_last_response_id(user_id, "")
                 await ctx.send("Previous conversation expired. Starting fresh...")

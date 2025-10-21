@@ -2,13 +2,14 @@ import time
 import json
 from typing import Dict, List, Optional
 import discord
+from typing import Any
 
 # Global state for pending confirmations
 pending_confirmations: Dict[str, Dict] = {}
 
 
 def add_pending_confirmation(
-    message_id: str, user_id: str, action: str, parameters: Dict, channel_id: str = None
+    message_id: str, user_id: str, action: str, parameters: Dict, channel_id: Optional[str] = None
 ) -> None:
     """Add a pending confirmation to the global state."""
     pending_confirmations[message_id] = {
@@ -38,7 +39,7 @@ def is_timed_out(confirmation: Dict, timeout_seconds: int = 60) -> bool:
     return (current_time - confirmation["timestamp"]) > timeout_seconds
 
 
-def get_tool_definitions() -> List[Dict]:
+def get_tool_definitions() -> List[Dict[str, Any]]:
     """Get tool definitions for Grok API."""
     return [
         {
@@ -65,6 +66,7 @@ def get_tool_definitions() -> List[Dict]:
                     },
                     "required": ["name", "role"],
                 },
+                "strict": True,
             },
         },
         {
@@ -82,6 +84,7 @@ def get_tool_definitions() -> List[Dict]:
                     },
                     "required": ["name"],
                 },
+                "strict": True,
             },
         },
         {
@@ -90,6 +93,7 @@ def get_tool_definitions() -> List[Dict]:
                 "name": "view_party_members",
                 "description": "View all current party members with their roles and gear preferences.",
                 "parameters": {"type": "object", "properties": {}, "required": []},
+                "strict": True,
             },
         },
         {
@@ -112,6 +116,7 @@ def get_tool_definitions() -> List[Dict]:
                     },
                     "required": ["loot_description"],
                 },
+                "strict": True,
             },
         },
     ]
@@ -431,7 +436,7 @@ Provide your recommendations in this format:
         }
 
     try:
-        response = openai_client.responses.create(**api_params)
+        response = openai_client.responses.create(**api_params)  # type: ignore[arg-type]
 
         # Save the response ID for future continuations
         memory_system.set_last_response_id(user_id, response.id)
