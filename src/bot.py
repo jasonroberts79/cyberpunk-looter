@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands
 from openai import OpenAI
 from dotenv import load_dotenv
+from openai.types.responses import EasyInputMessageParam, ResponseInputParam
 from graphrag_system import GraphRAGSystem
 from memory_system import MemorySystem
 from typing import Optional, cast, List, Any
@@ -192,56 +193,46 @@ async def ask_question(ctx, *, question: str):
         # Build the input based on whether we have a previous conversation
         if previous_response_id:
             # Continue existing conversation - only send new message
-            input_messages = [{"role": "user", "content": question}]
-            api_params = {
-                "model": OPENAI_MODEL,
-                "previous_response_id": previous_response_id,
-                "input": input_messages,
-                "temperature": 0.6,
-                "tools": get_tool_definitions(),
-                "tool_choice": "auto",
-            }
+            input_messages = [
+                EasyInputMessageParam({"role": "user", "content": question})
+            ]
         else:
             # Start new conversation - send full context
             short_term_context = memory_system.get_short_term_context(
                 user_id, max_messages=4
             )
-            conversation_history = []
+            conversation_history: list[EasyInputMessageParam] = []
             for msg in short_term_context:
                 conversation_history.append(
-                    {"role": msg["role"], "content": msg["content"]}
+                    EasyInputMessageParam(
+                        {"role": msg["role"], "content": msg["content"]}
+                    )
                 )
 
-            system_prompt = f"""You are a helpful AI assistant.
-{game_context}
-
-User Context: {user_summary}
-
-Party Context:
-{party_summary}
-
-Use the following context from the knowledge base to answer questions. If the answer isn't in the context, say so clearly.
-
-Knowledge Base Context:
-{context}
-
-Be concise and direct. Remember details from our conversation."""
-
-            input_messages = [{"role": "system", "content": system_prompt}]
+            input_messages: ResponseInputParam = [
+                EasyInputMessageParam(
+                    {
+                        "role": "system",
+                        "content": create_system_prompt(
+                            context, user_summary, party_summary
+                        ),
+                    }
+                )
+            ]
             input_messages.extend(conversation_history)
-            input_messages.append({"role": "user", "content": question})
-
-            api_params = {
-                "model": OPENAI_MODEL,
-                "input": input_messages,
-                "temperature": 0.6,
-                "tools": get_tool_definitions(),
-                "tool_choice": "auto",
-            }
+            input_messages.append(
+                EasyInputMessageParam({"role": "user", "content": question})
+            )
 
         try:
-            response = openai_client.responses.create(**api_params)  # type: ignore[arg-type]
-
+            response = openai_client.responses.create(
+                model=OPENAI_MODEL,
+                input=input_messages,
+                temperature=0.6,
+                tools=get_tool_definitions(),
+                tool_choice="auto",
+                previous_response_id=previous_response_id,
+            )
             # Handle tool calls if present
             handled = await handle_tool_calls(
                 ctx,
@@ -276,7 +267,7 @@ Be concise and direct. Remember details from our conversation."""
             error_msg = str(e)
 
             # Build detailed error log
-            input_messages = cast(List[Any], api_params.get('input', []))
+            input_messages = cast(List[Any], input_messages)
             error_log = [
                 "=" * 80,
                 "ERROR in !ai command",
@@ -288,15 +279,13 @@ Be concise and direct. Remember details from our conversation."""
                 f"Error Message: {error_msg}",
                 "",
                 "API Parameters:",
-                f"  - Model: {api_params.get('model')}",
-                f"  - Temperature: {api_params.get('temperature')}",
                 f"  - Tools: {len(get_tool_definitions())} tool definitions",
                 f"  - Input Messages: {len(input_messages)} messages",
             ]
 
-            if "previous_response_id" in api_params:
+            if previous_response_id:
                 error_log.append(
-                    f"  - Using previous_response_id: {api_params['previous_response_id']}"
+                    f"  - Using previous_response_id: {previous_response_id}"
                 )
 
             error_log.extend(["", "Full Traceback:", traceback.format_exc(), "=" * 80])
@@ -318,6 +307,20 @@ Be concise and direct. Remember details from our conversation."""
                 await ctx.send("Please try your question again.")
             else:
                 await ctx.send(f"Error: {error_msg}")
+
+
+def create_system_prompt(context, user_summary, party_summary):
+    system_prompt = f"""You are a helpful AI assistant.
+{game_context}
+User Context: {user_summary}
+Party Context:
+{party_summary}
+Use the following context from the knowledge base to answer questions. If the answer isn't in the context, say so clearly.
+Knowledge Base Context:
+{context}
+Be concise and direct. Remember details from our conversation."""
+
+    return system_prompt
 
 
 @bot.command(

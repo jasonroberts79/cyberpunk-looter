@@ -112,22 +112,21 @@ def test_get_tool_definitions_structure():
         assert isinstance(tool, dict)
         assert "type" in tool
         assert tool["type"] == "function"
-        assert "function" in tool
+        assert "name" in tool
+        assert "description" in tool
+        assert "parameters" in tool
 
 
 def test_add_party_character_tool_schema():
     """Test correct parameters (name required, role required, gear_preferences optional)."""
     tools = get_tool_definitions()
-    add_char_tool = next(
-        t for t in tools if t["function"]["name"] == "add_party_character"
-    )
+    add_char_tool = next(t for t in tools if t["name"] == "add_party_character")
 
     assert add_char_tool is not None
-    function = add_char_tool["function"]
-    assert function["name"] == "add_party_character"
-    assert "parameters" in function
+    assert add_char_tool["name"] == "add_party_character"
+    assert "parameters" in add_char_tool
 
-    params = function["parameters"]
+    params = add_char_tool["parameters"]
     assert "name" in params["properties"]
     assert "role" in params["properties"]
     assert "gear_preferences" in params["properties"]
@@ -140,15 +139,12 @@ def test_add_party_character_tool_schema():
 def test_remove_party_character_tool_schema():
     """Test correct parameters (name required)."""
     tools = get_tool_definitions()
-    remove_char_tool = next(
-        t for t in tools if t["function"]["name"] == "remove_party_character"
-    )
+    remove_char_tool = next(t for t in tools if t["name"] == "remove_party_character")
 
     assert remove_char_tool is not None
-    function = remove_char_tool["function"]
-    assert function["name"] == "remove_party_character"
+    assert remove_char_tool["name"] == "remove_party_character"
 
-    params = function["parameters"]
+    params = remove_char_tool["parameters"]
     assert "name" in params["properties"]
     assert "name" in params["required"]
 
@@ -156,28 +152,24 @@ def test_remove_party_character_tool_schema():
 def test_view_party_members_tool_schema():
     """Test no required parameters."""
     tools = get_tool_definitions()
-    view_party_tool = next(
-        t for t in tools if t["function"]["name"] == "view_party_members"
-    )
+    view_party_tool = next(t for t in tools if t["name"] == "view_party_members")
 
     assert view_party_tool is not None
-    function = view_party_tool["function"]
-    assert function["name"] == "view_party_members"
+    assert view_party_tool["name"] == "view_party_members"
 
-    params = function["parameters"]
+    params = view_party_tool["parameters"]
     assert params["required"] == []
 
 
 def test_recommend_gear_tool_schema():
     """Test correct parameters (loot_description required, excluded_characters optional)."""
     tools = get_tool_definitions()
-    recommend_tool = next(t for t in tools if t["function"]["name"] == "recommend_gear")
+    recommend_tool = next(t for t in tools if t["name"] == "recommend_gear")
 
     assert recommend_tool is not None
-    function = recommend_tool["function"]
-    assert function["name"] == "recommend_gear"
+    assert recommend_tool["name"] == "recommend_gear"
 
-    params = function["parameters"]
+    params = recommend_tool["parameters"]
     assert "loot_description" in params["properties"]
     assert "excluded_characters" in params["properties"]
 

@@ -1,15 +1,19 @@
 import time
 import json
-from typing import Dict, List, Optional
 import discord
-from typing import Any
+from typing import Dict, List, Optional
+from openai.types.responses import ToolParam, FunctionToolParam
 
 # Global state for pending confirmations
 pending_confirmations: Dict[str, Dict] = {}
 
 
 def add_pending_confirmation(
-    message_id: str, user_id: str, action: str, parameters: Dict, channel_id: Optional[str] = None
+    message_id: str,
+    user_id: str,
+    action: str,
+    parameters: Dict,
+    channel_id: Optional[str] = None,
 ) -> None:
     """Add a pending confirmation to the global state."""
     pending_confirmations[message_id] = {
@@ -39,12 +43,12 @@ def is_timed_out(confirmation: Dict, timeout_seconds: int = 60) -> bool:
     return (current_time - confirmation["timestamp"]) > timeout_seconds
 
 
-def get_tool_definitions() -> List[Dict[str, Any]]:
+def get_tool_definitions() -> List[ToolParam]:
     """Get tool definitions for Grok API."""
     return [
-        {
-            "type": "function",
-            "function": {
+        FunctionToolParam(
+            {
+                "type": "function",
                 "name": "add_party_character",
                 "description": "Add a new character to the party or update an existing character. Requires character name and role. Gear preferences are optional.",
                 "parameters": {
@@ -67,11 +71,11 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
                     "required": ["name", "role"],
                 },
                 "strict": True,
-            },
-        },
-        {
-            "type": "function",
-            "function": {
+            }
+        ),
+        FunctionToolParam(
+            {
+                "type": "function",
                 "name": "remove_party_character",
                 "description": "Remove a character from the party by name.",
                 "parameters": {
@@ -85,20 +89,20 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
                     "required": ["name"],
                 },
                 "strict": True,
-            },
-        },
-        {
-            "type": "function",
-            "function": {
+            }
+        ),
+        FunctionToolParam(
+            {
+                "type": "function",
                 "name": "view_party_members",
                 "description": "View all current party members with their roles and gear preferences.",
                 "parameters": {"type": "object", "properties": {}, "required": []},
                 "strict": True,
-            },
-        },
-        {
-            "type": "function",
-            "function": {
+            }
+        ),
+        FunctionToolParam(
+            {
+                "type": "function",
                 "name": "recommend_gear",
                 "description": "Get AI-powered gear distribution recommendations for party members based on loot description. Accepts natural language descriptions of loot items.",
                 "parameters": {
@@ -117,8 +121,8 @@ def get_tool_definitions() -> List[Dict[str, Any]]:
                     "required": ["loot_description"],
                 },
                 "strict": True,
-            },
-        },
+            }
+        ),
     ]
 
 
