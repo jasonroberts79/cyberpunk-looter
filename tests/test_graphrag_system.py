@@ -30,7 +30,7 @@ class TestGraphRAGSystemInit:
             neo4j_username="neo4j",
             neo4j_password="password",
             openai_api_key="test-key",
-            grok_api_key="grok-key",
+            llm_api_key="test-key",
         )
 
         assert system.driver is not None
@@ -557,7 +557,7 @@ class TestDatabaseOperations:
             neo4j_username="neo4j",
             neo4j_password="password",
             openai_api_key="test-key",
-            grok_api_key="grok-key",
+            llm_api_key="test-key",
         )
 
         with (

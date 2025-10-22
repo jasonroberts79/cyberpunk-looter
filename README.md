@@ -19,9 +19,9 @@ An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation
 1. **Discord Bot**: See [DISCORD_SETUP.md](DISCORD_SETUP.md) for complete setup instructions
    - **IMPORTANT**: Enable "Message Content Intent" in Bot settings
 2. **API Keys**:
-   - Grok (xAI): [console.x.ai](https://console.x.ai) - see [GROK_SETUP.md](GROK_SETUP.md)
    - OpenAI: [platform.openai.com](https://platform.openai.com/api-keys)
-   - Or any OpenAI-compatible provider
+   - Grok (xAI): [console.x.ai](https://console.x.ai) - see [GROK_SETUP.md](GROK_SETUP.md)
+   - Or any other OpenAI-compatible provider (Azure OpenAI, etc.)
 
 ### Installation
 

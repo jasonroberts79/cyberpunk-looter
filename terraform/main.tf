@@ -104,8 +104,8 @@ resource "google_secret_manager_secret" "discord_token" {
   depends_on = [google_project_service.cloud_run_api, google_project_service.secret_manager_api]
 }
 
-resource "google_secret_manager_secret" "grok_api_key" {
-  secret_id = "grok-api-key"
+resource "google_secret_manager_secret" "openai_api_key" {
+  secret_id = "openai-api-key"
 
   replication {
     auto {}
@@ -161,8 +161,8 @@ resource "google_secret_manager_secret_iam_member" "discord_token_access" {
   member    = "serviceAccount:${google_service_account.discord_bot.email}"
 }
 
-resource "google_secret_manager_secret_iam_member" "grok_api_key_access" {
-  secret_id = google_secret_manager_secret.grok_api_key.id
+resource "google_secret_manager_secret_iam_member" "openai_api_key_access" {
+  secret_id = google_secret_manager_secret.openai_api_key.id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.discord_bot.email}"
 }
@@ -234,6 +234,11 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
       }
 
       env {
+        name  = "OPENAI_EMBEDDINGS_BASE_URL"
+        value = var.openai_embeddings_base_url
+      }
+
+      env {
         name  = "GCS_BUCKET_NAME"
         value = google_storage_bucket.bot_memory.name
       }
@@ -250,10 +255,10 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
       }
 
       env {
-        name = "GROK_API_KEY"
+        name = "OPENAI_API_KEY"
         value_source {
           secret_key_ref {
-            secret  = google_secret_manager_secret.grok_api_key.secret_id
+            secret  = google_secret_manager_secret.openai_api_key.secret_id
             version = "latest"
           }
         }
@@ -305,7 +310,7 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
     google_project_service.cloud_run_api,
     google_artifact_registry_repository.docker_repo,
     google_secret_manager_secret_iam_member.discord_token_access,
-    google_secret_manager_secret_iam_member.grok_api_key_access,
+    google_secret_manager_secret_iam_member.openai_api_key_access,
     google_secret_manager_secret_iam_member.openai_embeddings_key_access,
     google_secret_manager_secret_iam_member.neo4j_uri_access,
     google_secret_manager_secret_iam_member.neo4j_username_access,

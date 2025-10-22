@@ -7,7 +7,7 @@
 2. Discord bot token
 3. Neo4j database (Aura free tier or self-hosted)
 4. OpenAI API key for embeddings
-5. Grok API key (or compatible LLM API)
+5. OpenAI-compatible API key (OpenAI, Grok, Azure OpenAI, etc.)
 
 ### Step 1: Create GCP Service Account
 
@@ -80,8 +80,8 @@ terraform apply -var="project_id=$env:PROJECT_ID"
 # Add Discord bot token
 echo -n "YOUR_DISCORD_BOT_TOKEN" | gcloud secrets versions add discord-bot-token --data-file=- --project=$env:PROJECT_ID
 
-# Add Grok API key
-echo -n "YOUR_GROK_API_KEY" | gcloud secrets versions add grok-api-key --data-file=- --project=$env:PROJECT_ID
+# Add OpenAI-compatible API key
+echo -n "YOUR_OPENAI_API_KEY" | gcloud secrets versions add openai-api-key --data-file=- --project=$env:PROJECT_ID
 
 # Add OpenAI embeddings key
 echo -n "YOUR_OPENAI_EMBEDDINGS_KEY" | gcloud secrets versions add openai-embeddings-key --data-file=- --project=$env:PROJECT_ID

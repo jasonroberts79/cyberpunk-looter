@@ -1,7 +1,7 @@
 graph TB
     subgraph "External Services"
         Discord[Discord Platform]
-        Grok["Grok/xAI API
+        LLMAPI["OpenAI-Compatible API
         Chat Completion"]
         OpenAI["OpenAI API
         Embeddings"]
@@ -65,14 +65,14 @@ graph TB
     %% Bot System Connections
     Bot -->|Query with Context| GraphRAG
     Bot -->|Store/Retrieve Memory| Memory
-    Bot -->|Generate Response| Grok
+    Bot -->|Generate Response| LLMAPI
 
     %% GraphRAG Connections
     GraphRAG -->|Load & Parse| KB
     GraphRAG -->|Store Chunks + Vectors| Neo4j
     GraphRAG -->|Vector Similarity Search| Neo4j
     GraphRAG -->|Generate Embeddings| OpenAI
-    GraphRAG -->|Chat with Retrieved Context| Grok
+    GraphRAG -->|Chat with Retrieved Context| LLMAPI
     GraphRAG -->|Track File Changes| Storage
 
     %% Memory System Connections
@@ -100,7 +100,7 @@ graph TB
     classDef infra fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef storage fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
 
-    class Discord,Grok,OpenAI,Neo4j external
+    class Discord,LLMAPI,OpenAI,Neo4j external
     class Bot,GraphRAG,Memory core
     class GHA,Docker,AR,CloudRun,SM,TF infra
     class Storage,KB storage

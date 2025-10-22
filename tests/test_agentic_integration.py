@@ -33,7 +33,7 @@ def mock_discord_ctx():
 
 
 @pytest.fixture
-def mock_grok_client():
+def mock_openai_client():
     """Returns mock OpenAI client."""
     client = Mock()
     response = Mock()
@@ -77,7 +77,7 @@ def mock_graphrag_system():
 async def test_handle_tool_calls_with_add_character(
     cleanup_confirmations,
     mock_discord_ctx,
-    mock_grok_client,
+    mock_openai_client,
     mock_memory_system,
     mock_graphrag_system,
 ):
@@ -112,10 +112,10 @@ async def test_handle_tool_calls_with_add_character(
         mock_discord_ctx,
         response,
         "12345",
-        mock_grok_client,
+        mock_openai_client,
         mock_memory_system,
         mock_graphrag_system,
-        "grok-4-fast",
+        "grok-beta",
         bot,
     )
 
@@ -131,7 +131,7 @@ async def test_handle_tool_calls_with_add_character(
 async def test_handle_tool_calls_with_remove_character(
     cleanup_confirmations,
     mock_discord_ctx,
-    mock_grok_client,
+    mock_openai_client,
     mock_memory_system,
     mock_graphrag_system,
 ):
@@ -160,10 +160,10 @@ async def test_handle_tool_calls_with_remove_character(
         mock_discord_ctx,
         response,
         "12345",
-        mock_grok_client,
+        mock_openai_client,
         mock_memory_system,
         mock_graphrag_system,
-        "grok-4-fast",
+        "grok-beta",
         bot,
     )
 
@@ -176,7 +176,7 @@ async def test_handle_tool_calls_with_remove_character(
 async def test_handle_tool_calls_no_tool_calls(
     cleanup_confirmations,
     mock_discord_ctx,
-    mock_grok_client,
+    mock_openai_client,
     mock_memory_system,
     mock_graphrag_system,
 ):
@@ -191,10 +191,10 @@ async def test_handle_tool_calls_no_tool_calls(
         mock_discord_ctx,
         response,
         "12345",
-        mock_grok_client,
+        mock_openai_client,
         mock_memory_system,
         mock_graphrag_system,
-        "grok-4-fast",
+        "grok-beta",
         bot,
     )
 
@@ -206,7 +206,7 @@ async def test_handle_tool_calls_no_tool_calls(
 async def test_handle_tool_calls_multiple_tools(
     cleanup_confirmations,
     mock_discord_ctx,
-    mock_grok_client,
+    mock_openai_client,
     mock_memory_system,
     mock_graphrag_system,
 ):
@@ -242,10 +242,10 @@ async def test_handle_tool_calls_multiple_tools(
         mock_discord_ctx,
         response,
         "12345",
-        mock_grok_client,
+        mock_openai_client,
         mock_memory_system,
         mock_graphrag_system,
-        "grok-4-fast",
+        "grok-beta",
         bot,
     )
 
@@ -260,7 +260,7 @@ async def test_handle_tool_calls_multiple_tools(
 
 @pytest.mark.asyncio
 async def test_reaction_approval_executes_action(
-    cleanup_confirmations, mock_memory_system, mock_graphrag_system, mock_grok_client
+    cleanup_confirmations, mock_memory_system, mock_graphrag_system, mock_openai_client
 ):
     """Mock reaction event with 👍, verify action executed, verify success message sent."""
     # Set up pending confirmation
@@ -286,8 +286,8 @@ async def test_reaction_approval_executes_action(
         confirmation,
         mock_memory_system,
         mock_graphrag_system,
-        mock_grok_client,
-        "grok-4-fast",
+        mock_openai_client,
+        "grok-beta",
         bot,
     )
 
@@ -512,7 +512,7 @@ async def test_timeout_removes_from_pending(cleanup_confirmations):
 async def test_ask_command_with_tool_call_flow(
     cleanup_confirmations,
     mock_discord_ctx,
-    mock_grok_client,
+    mock_openai_client,
     mock_memory_system,
     mock_graphrag_system,
 ):
@@ -524,7 +524,7 @@ async def test_ask_command_with_tool_call_flow(
 
 
 @pytest.mark.asyncio
-async def test_ask_command_normal_flow_no_tools(mock_grok_client, mock_memory_system):
+async def test_ask_command_normal_flow_no_tools(mock_openai_client, mock_memory_system):
     """Verify normal !ask flow still works when no tool calls in response."""
     # Create response without tool calls
     response = Mock()

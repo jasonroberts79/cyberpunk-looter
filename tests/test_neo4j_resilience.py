@@ -38,7 +38,7 @@ class TestNeo4jConnectionResilience:
             neo4j_username="neo4j",
             neo4j_password="password",
             openai_api_key="test-key",
-            grok_api_key="grok-key",
+            llm_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.5,
         )
@@ -146,7 +146,7 @@ class TestNeo4jConnectionResilience:
             neo4j_username="neo4j",
             neo4j_password="password",
             openai_api_key="test-key",
-            grok_api_key="test-key",
+            llm_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.1,
         )

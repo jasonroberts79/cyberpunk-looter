@@ -1,6 +1,7 @@
 import time
 import json
 import discord
+from discord.ext.commands import Context
 from typing import Dict, List, Optional
 from openai.types.responses import ToolParam, FunctionToolParam
 
@@ -44,7 +45,7 @@ def is_timed_out(confirmation: Dict, timeout_seconds: int = 60) -> bool:
 
 
 def get_tool_definitions() -> List[ToolParam]:
-    """Get tool definitions for Grok API."""
+    """Get tool definitions for OpenAI-compatible API."""
     return [
         FunctionToolParam(
             {
@@ -183,7 +184,7 @@ Action: {action}
 
 
 def has_tool_calls(response) -> bool:
-    """Check if Grok response contains tool calls."""
+    """Check if API response contains tool calls."""
     try:
         # Check for tool_calls attribute in the response
         if hasattr(response, "tool_calls") and response.tool_calls:
@@ -199,11 +200,12 @@ def has_tool_calls(response) -> bool:
                 )
         return False
     except (AttributeError, IndexError):
+        print("Error checking for tool calls in response.")
         return False
 
 
 def extract_tool_calls(response) -> List[Dict]:
-    """Extract tool calls from Grok response."""
+    """Extract tool calls from API response."""
     tool_calls = []
     try:
         # Try direct tool_calls attribute
@@ -233,7 +235,7 @@ def extract_tool_calls(response) -> List[Dict]:
 
 
 async def handle_tool_calls(
-    ctx,
+    ctx: Context,
     response,
     user_id: str,
     openai_client,
@@ -242,7 +244,7 @@ async def handle_tool_calls(
     OPENAI_MODEL: str,
     bot,
 ) -> bool:
-    """Handle tool calls from Grok response. Returns True if tool calls were handled."""
+    """Handle tool calls from API response. Returns True if tool calls were handled."""
     # Check if response has tool calls
     if not has_tool_calls(response):
         return False

@@ -28,13 +28,19 @@ variable "image_tag" {
 }
 
 variable "openai_model" {
-  description = "OpenAI model to use"
+  description = "OpenAI-compatible model to use"
   type        = string
-  default     = "grok-4-fast"
+  default     = "claude-sonnet-4-5"
 }
 
 variable "openai_base_url" {
   description = "OpenAI API base URL"
   type        = string
-  default     = "https://api.x.ai/v1"
+  default     = "https://api.anthropic.com/v1"
+}
+
+variable "openai_embeddings_base_url" {
+  description = "OpenAI embeddings API base URL"
+  type        = string
+  default     = "https://api.openai.com/v1"
 }

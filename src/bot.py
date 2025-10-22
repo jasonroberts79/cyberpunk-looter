@@ -5,6 +5,7 @@ import socket
 import traceback
 import discord
 from discord.ext import commands
+from discord.ext.commands import Context
 from openai import OpenAI
 from dotenv import load_dotenv
 from openai.types.responses import EasyInputMessageParam, ResponseInputParam
@@ -41,9 +42,12 @@ DISCORD_TOKEN = ensure_envvar("DISCORD_BOT_TOKEN")
 
 OPENAI_MODEL = ensure_envvar("OPENAI_MODEL")
 OPENAI_BASE_URL = ensure_envvar("OPENAI_BASE_URL")
-GROK_API_KEY = ensure_envvar("GROK_API_KEY")
+OPENAI_API_KEY = ensure_envvar("OPENAI_API_KEY")
 
 OPENAI_EMBEDDINGS_KEY = ensure_envvar("OPENAI_EMBEDDINGS_KEY")
+OPENAI_EMBEDDINGS_BASE_URL = os.getenv(
+    "OPENAI_EMBEDDINGS_BASE_URL", "https://api.openai.com/v1"
+)
 
 NEO4J_URI = ensure_envvar("NEO4J_URI")
 NEO4J_USERNAME = ensure_envvar("NEO4J_USERNAME")
@@ -80,8 +84,8 @@ async def on_ready():
 
     print(f"{bot.user} has connected to Discord!")
 
-    if not all([GROK_API_KEY, OPENAI_BASE_URL]):
-        print("ERROR: Chat API key or URL missing (GROK_API_KEY or OPENAI_BASE_URL)!")
+    if not all([OPENAI_API_KEY, OPENAI_BASE_URL]):
+        print("ERROR: Chat API key or URL missing (OPENAI_API_KEY or OPENAI_BASE_URL)!")
         return
 
     if not OPENAI_EMBEDDINGS_KEY:
@@ -101,8 +105,10 @@ async def on_ready():
         neo4j_username=NEO4J_USERNAME,
         neo4j_password=NEO4J_PASSWORD,
         openai_api_key=OPENAI_EMBEDDINGS_KEY,
-        grok_api_key=GROK_API_KEY,
-        grok_model=OPENAI_MODEL,
+        llm_api_key=OPENAI_API_KEY,
+        llm_model=OPENAI_MODEL,
+        embeddings_base_url=OPENAI_EMBEDDINGS_BASE_URL,
+        llm_base_url=OPENAI_BASE_URL,
     )
 
     print("Building knowledge graph (this may take several minutes)...")
@@ -112,9 +118,9 @@ async def on_ready():
     memory_system = MemorySystem()
 
     print("Initializing chat client...")
-    print(f"Using Grok API with model: {OPENAI_MODEL}")
+    print(f"Using OpenAI-compatible API with model: {OPENAI_MODEL}")
 
-    openai_client = OpenAI(api_key=GROK_API_KEY, base_url=OPENAI_BASE_URL)
+    openai_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
     print("Bot is ready!")
 
@@ -169,7 +175,7 @@ async def on_reaction_add(reaction, user):
 
 
 @bot.command(name="ai", help="Interact with the AI")
-async def ask_question(ctx, *, question: str):
+async def ask_question(ctx: Context, *, question: str):
     if not graphrag_system or not memory_system or not openai_client:
         await ctx.send("Bot is still initializing. Please wait...")
         return
@@ -233,7 +239,9 @@ async def ask_question(ctx, *, question: str):
                 tool_choice="auto",
                 previous_response_id=previous_response_id,
             )
+            print(response)
             # Handle tool calls if present
+            # TODO: I suspect the handle logic is not using the right field names
             handled = await handle_tool_calls(
                 ctx,
                 response,
@@ -250,22 +258,13 @@ async def ask_question(ctx, *, question: str):
             # Save the response ID for future continuations
             memory_system.set_last_response_id(user_id, response.id)
 
-            # Debug: Print all response object fields
-            print("=" * 80)
-            print("DEBUG: Response object fields:")
-            print(f"response.output_text: {response.output_text}")
-            print(f"response.incomplete_details: {response.incomplete_details}")
-            print(f"response.status: {response.status}")
-            print(f"response.error: {response.error}")
-            print(f"All attributes: {dir(response)}")
-            print("=" * 80)
-
             answer = response.output_text
             if not answer:
                 answer = "I couldn't generate a response."
             else:
                 memory_system.add_to_short_term(user_id, "user", answer)
 
+            print(f"Answer to user {user_id}: {answer}")
             if len(answer) > 2000:
                 file = io.BytesIO(answer.encode("utf-8"))
                 file.seek(0)

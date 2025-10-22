@@ -25,9 +25,11 @@ class GraphRAGSystem:
         neo4j_username: str,
         neo4j_password: str,
         openai_api_key: str,
-        grok_api_key: Optional[str] = None,
-        grok_model: str = "grok-4-fast",
+        llm_api_key: Optional[str] = None,
+        llm_model: str = "grok-beta",
         embedding_model: str = "text-embedding-3-small",
+        embeddings_base_url: str = "https://api.openai.com/v1",
+        llm_base_url: str = "https://api.x.ai/v1",
         max_retry_attempts: int = 3,
         retry_delay: float = 1.0,
     ):
@@ -46,13 +48,13 @@ class GraphRAGSystem:
         self.embedder = OpenAIEmbeddings(
             api_key=openai_api_key,
             model=embedding_model,
-            base_url="https://api.openai.com/v1",
+            base_url=embeddings_base_url,
         )
 
         self.llm = OpenAILLM(
-            api_key=grok_api_key,
-            base_url="https://api.x.ai/v1",
-            model_name=grok_model,
+            api_key=llm_api_key,
+            base_url=llm_base_url,
+            model_name=llm_model,
             model_params={"temperature": 0.6},
         )
 

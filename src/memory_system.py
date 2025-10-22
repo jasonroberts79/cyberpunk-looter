@@ -52,11 +52,11 @@ class MemorySystem:
             del self.last_response_ids[user_id]
 
     def get_last_response_id(self, user_id: str) -> Optional[str]:
-        """Get the last response ID for a user's conversation with Grok."""
+        """Get the last response ID for a user's conversation."""
         return self.last_response_ids.get(user_id)
 
     def set_last_response_id(self, user_id: str, response_id: str):
-        """Save the response ID from Grok's Responses API."""
+        """Save the response ID from the OpenAI-compatible Responses API."""
         self.last_response_ids[user_id] = response_id
 
     def update_long_term(self, user_id: str, key: str, value: Any):
