@@ -20,8 +20,7 @@ An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation
    - **IMPORTANT**: Enable "Message Content Intent" in Bot settings
 2. **API Keys**:
    - OpenAI: [platform.openai.com](https://platform.openai.com/api-keys)
-   - Grok (xAI): [console.x.ai](https://console.x.ai) - see [GROK_SETUP.md](GROK_SETUP.md)
-   - Or any other OpenAI-compatible provider (Azure OpenAI, etc.)
+   - see [OPENAI_SETUP.md](OPENAI_SETUP.md)
 
 ### Installation
 
@@ -45,7 +44,7 @@ uv run src/bot.py
 
 ## Discord Commands
 
-- `!ask <question>` - Ask a question using the knowledge base
+- `!ai <question>` - Ask a question using the knowledge base
 - `!reindex` - Update knowledge graph (processes only new/modified files)
 - `!reindex force` - Force rebuild entire knowledge graph
 - `!clear` - Clear conversation history
@@ -68,6 +67,7 @@ See [TESTING.md](TESTING.md) for comprehensive testing documentation.
 - `src/graphrag_system.py` - Neo4j graph database, document ingestion, vector search
 - `src/memory_system.py` - Short and long-term memory management
 - `src/bot.py` - Discord bot logic and command handlers
+- `src/agentic_handler.py` - Handles agentic interactions to enable the bot to use tools (party management at the moment)
 - `knowledge_base/` - Your markdown and PDF documents
 
 **GraphRAG Implementation:**

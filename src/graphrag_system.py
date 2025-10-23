@@ -26,10 +26,10 @@ class GraphRAGSystem:
         neo4j_password: str,
         openai_api_key: str,
         llm_api_key: Optional[str] = None,
-        llm_model: str = "grok-beta",
+        llm_model: str = "claude-sonnet-4-5",
         embedding_model: str = "text-embedding-3-small",
         embeddings_base_url: str = "https://api.openai.com/v1",
-        llm_base_url: str = "https://api.x.ai/v1",
+        llm_base_url: str = "https://api.anthropic.com/v1",
         max_retry_attempts: int = 3,
         retry_delay: float = 1.0,
     ):
