@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import os
 from pprint import pprint
 from dotenv import load_dotenv, dotenv_values
 
@@ -30,6 +31,7 @@ class LLMCLIHarness:
         load_dotenv()
 
         self.user_id = "Jason(CLI)"
+        self.party_id = os.getenv('RED_PARTY_ID', 'default_cli_party')
 
     def print_banner(self):
         """Print welcome banner."""
@@ -83,12 +85,12 @@ class LLMCLIHarness:
         for tool_call in tool_calls:
             tool_name = tool_call["name"]
             tool_arguments = tool_call["arguments"]
-            if not tool_system.is_tool_confirmation_required(tool_name):            
+            if not tool_system.is_tool_confirmation_required(tool_name):
                 # Execute the action directly
                 result_message = self.llm_service.execute_tool_action(
-                    tool_name, tool_arguments, self.user_id
+                    tool_name, tool_arguments, self.user_id, self.party_id
                 )
-                
+
                 print(f"\n{Colors.GREEN}{result_message}{Colors.END}\n")
                 continue
             if isinstance(tool_arguments, str):
@@ -110,9 +112,9 @@ class LLMCLIHarness:
                 if response in ["y", "yes"]:
                     # Execute the action
                     result_message = self.llm_service.execute_tool_action(
-                        tool_name, parameters, self.user_id
+                        tool_name, parameters, self.user_id, self.party_id
                     )
-                    
+
                     print(f"\n{Colors.GREEN}{result_message}{Colors.END}\n")
                     break
                 elif response in ["n", "no"]:
@@ -131,7 +133,7 @@ class LLMCLIHarness:
 
         try:
             print(f"{Colors.YELLOW}Processing...{Colors.END}")
-            response = self.llm_service.process_query(self.user_id, question)
+            response = self.llm_service.process_query(self.user_id, self.party_id, question)
             tool_calls = self.llm_service.extract_tool_calls(response)
             # Handle tool calls if present
             if tool_calls is not None:

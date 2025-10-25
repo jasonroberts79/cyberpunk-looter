@@ -40,12 +40,14 @@ class TestAddPendingConfirmation:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={"name": "V", "role": "Solo"},
         )
 
         assert "123" in reactions.pending_confirmations
         assert reactions.pending_confirmations["123"]["user_id"] == "user456"
+        assert reactions.pending_confirmations["123"]["party_id"] == "party789"
         assert reactions.pending_confirmations["123"]["action"] == "add_party_character"
         assert reactions.pending_confirmations["123"]["processed"] is False
 
@@ -57,6 +59,7 @@ class TestAddPendingConfirmation:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="view_party_members",
             parameters={},
             channel_id="channel789",
@@ -73,6 +76,7 @@ class TestAddPendingConfirmation:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
@@ -93,6 +97,7 @@ class TestGetPendingConfirmation:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={"name": "V"},
         )
@@ -123,6 +128,7 @@ class TestRemovePendingConfirmation:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
@@ -195,6 +201,7 @@ class TestHandleApproval:
 
         confirmation = {
             "user_id": "user456",
+            "party_id": "party789",
             "action": "add_party_character",
             "parameters": {"name": "V", "role": "Solo"},
             "processed": False,
@@ -206,6 +213,7 @@ class TestHandleApproval:
             "add_party_character",
             {"name": "V", "role": "Solo"},
             "user456",
+            "party789",
         )
         mock_message.reply.assert_called_once()
         assert confirmation["processed"] is True
@@ -220,6 +228,7 @@ class TestHandleApproval:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="view_party_members",
             parameters={},
         )
@@ -256,6 +265,7 @@ class TestHandleApproval:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
@@ -317,6 +327,7 @@ class TestHandleRejection:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={"name": "V"},
         )
@@ -349,6 +360,7 @@ class TestHandleRejection:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="remove_party_character",
             parameters={"name": "Jackie"},
         )
@@ -432,6 +444,7 @@ class TestHandleTimeout:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
             channel_id="789",
@@ -458,6 +471,7 @@ class TestHandleTimeout:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
@@ -491,6 +505,7 @@ class TestHandleTimeout:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
             channel_id="789",
@@ -518,6 +533,7 @@ class TestCheckAndCleanupTimeouts:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
@@ -542,6 +558,7 @@ class TestCheckAndCleanupTimeouts:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
@@ -564,12 +581,14 @@ class TestCheckAndCleanupTimeouts:
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )
         reactions.add_pending_confirmation(
             message_id="456",
             user_id="user789",
+            party_id="party789",
             action="add_party_character",
             parameters={},
         )

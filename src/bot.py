@@ -84,13 +84,14 @@ async def on_reaction_add(reaction, user):
 @bot.command(name="ai", help="Interact with the AI")
 async def ask_question(ctx: Context, *, question: str):
     user_id = str(ctx.author.id)
+    party_id = str(ctx.guild.id) if ctx.guild else user_id
 
     # Check and cleanup timeouts for this user
     await reactions.check_and_cleanup_timeouts(user_id, bot)
 
     async with ctx.typing():
         try:
-            response = llm_service.process_query(user_id, question)
+            response = llm_service.process_query(user_id, party_id, question)
             tool_calls = llm_service.extract_tool_calls(response)
             if tool_calls is not None:
                 for msg in tool_calls:
@@ -99,10 +100,10 @@ async def ask_question(ctx: Context, *, question: str):
                     if not tool_system.is_tool_confirmation_required(name):
                         # Execute the action directly
                         result_message= llm_service.execute_tool_action(
-                            name, arguments, user_id
+                            name, arguments, user_id, party_id
                         )
 
-                        await ctx.send(result_message)                            
+                        await ctx.send(result_message)
                         continue
                     
                     sent_message = await ctx.send(
@@ -118,6 +119,7 @@ async def ask_question(ctx: Context, *, question: str):
                     reactions.add_pending_confirmation(
                         message_id=str(sent_message.id),
                         user_id=ctx.author.id.__str__(),
+                        party_id=party_id,
                         action=name,
                         parameters=arguments,
                         channel_id=str(ctx.channel.id),

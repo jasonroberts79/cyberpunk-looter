@@ -21,13 +21,14 @@ class DiscordReactions:
             action = confirmation["action"]
             parameters = confirmation["parameters"]
             user_id = confirmation["user_id"]
+            party_id = confirmation["party_id"]
 
             # Use LLM service to execute tool action
             if not self.llm_service:
                 raise ValueError("LLM service is required for tool execution")
 
             result_message = self.llm_service.execute_tool_action(
-                action, parameters, user_id
+                action, parameters, user_id, party_id
             )
 
             # Send success message as reply
@@ -77,6 +78,7 @@ class DiscordReactions:
         self,
         message_id: str,
         user_id: str,
+        party_id: str,
         action: str,
         parameters: Dict,
         channel_id: Optional[str] = None,
@@ -84,6 +86,7 @@ class DiscordReactions:
         """Add a pending confirmation to the state."""
         self.pending_confirmations[message_id] = {
             "user_id": user_id,
+            "party_id": party_id,
             "action": action,
             "parameters": parameters,
             "timestamp": time.time(),

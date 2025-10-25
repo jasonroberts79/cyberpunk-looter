@@ -277,15 +277,15 @@ class TestPartyManagement:
 
         memory = MemorySystem()
         is_new = memory.add_party_character(
-            "user123", "V", "Solo", ["Assault Rifles", "Body Armor"]
+            "party123", "V", "Solo", ["Assault Rifles", "Body Armor"]
         )
 
         assert is_new is True
-        assert "user123" in memory.long_term_memory
-        assert "party_members" in memory.long_term_memory["user123"]
-        assert "v" in memory.long_term_memory["user123"]["party_members"]
+        assert "party123" in memory.party_data
+        assert "party_members" in memory.party_data["party123"]
+        assert "v" in memory.party_data["party123"]["party_members"]
 
-        character = memory.long_term_memory["user123"]["party_members"]["v"]
+        character = memory.party_data["party123"]["party_members"]["v"]
         assert character["name"] == "V"
         assert character["role"] == "Solo"
         assert character["gear_preferences"] == ["Assault Rifles", "Body Armor"]
@@ -299,11 +299,11 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        memory.add_party_character("user123", "V", "Solo", ["Guns"])
-        is_new = memory.add_party_character("user123", "V", "Netrunner", ["Cyberware"])
+        memory.add_party_character("party123", "V", "Solo", ["Guns"])
+        is_new = memory.add_party_character("party123", "V", "Netrunner", ["Cyberware"])
 
         assert is_new is False
-        character = memory.long_term_memory["user123"]["party_members"]["v"]
+        character = memory.party_data["party123"]["party_members"]["v"]
         assert character["role"] == "Netrunner"
         assert character["gear_preferences"] == ["Cyberware"]
 
@@ -315,12 +315,12 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        memory.add_party_character("user123", "V", "Solo", [])
+        memory.add_party_character("party123", "V", "Solo", [])
 
-        result = memory.remove_party_character("user123", "V")
+        result = memory.remove_party_character("party123", "V")
 
         assert result is True
-        assert "v" not in memory.long_term_memory["user123"]["party_members"]
+        assert "v" not in memory.party_data["party123"]["party_members"]
 
     @patch("src.memory_system.AppStorage")
     def test_remove_party_character_not_found(self, mock_storage_class):
@@ -330,7 +330,7 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        result = memory.remove_party_character("user123", "NonExistent")
+        result = memory.remove_party_character("party123", "NonExistent")
 
         assert result is False
 
@@ -342,9 +342,9 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        memory.add_party_character("user123", "V", "Solo", ["Guns"])
+        memory.add_party_character("party123", "V", "Solo", ["Guns"])
 
-        character = memory.get_party_character("user123", "V")
+        character = memory.get_party_character("party123", "V")
 
         assert character is not None
         assert character["name"] == "V"
@@ -358,7 +358,7 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        character = memory.get_party_character("user123", "NonExistent")
+        character = memory.get_party_character("party123", "NonExistent")
 
         assert character is None
 
@@ -370,10 +370,10 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        memory.add_party_character("user123", "V", "Solo", [])
-        memory.add_party_character("user123", "Jackie", "Fixer", [])
+        memory.add_party_character("party123", "V", "Solo", [])
+        memory.add_party_character("party123", "Jackie", "Fixer", [])
 
-        characters = memory.list_party_characters("user123")
+        characters = memory.list_party_characters("party123")
 
         assert len(characters) == 2
         names = [char["name"] for char in characters]
@@ -388,7 +388,7 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        characters = memory.list_party_characters("user123")
+        characters = memory.list_party_characters("party123")
 
         assert characters == []
 
@@ -400,10 +400,10 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        memory.add_party_character("user123", "V", "Solo", ["Assault Rifles"])
-        memory.add_party_character("user123", "Jackie", "Fixer", [])
+        memory.add_party_character("party123", "V", "Solo", ["Assault Rifles"])
+        memory.add_party_character("party123", "Jackie", "Fixer", [])
 
-        summary = memory.get_party_summary("user123")
+        summary = memory.get_party_summary("party123")
 
         assert "V (Solo)" in summary
         assert "Jackie (Fixer)" in summary
@@ -417,7 +417,7 @@ class TestPartyManagement:
         mock_storage_class.return_value = mock_storage_instance
 
         memory = MemorySystem()
-        summary = memory.get_party_summary("user123")
+        summary = memory.get_party_summary("party123")
 
         assert summary == "No party members registered."
 

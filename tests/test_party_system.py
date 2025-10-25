@@ -23,26 +23,30 @@ def test_memory_system_initialization(mock_storage):
     """Test that memory system initializes correctly"""
     memory_system = MemorySystem()
     assert memory_system.long_term_memory == {}
-    mock_storage.readdata.assert_called_once_with("long_term_memory.json")
+    assert memory_system.party_data == {}
+    # Should be called twice: once for long_term_memory.json and once for party_data.json
+    assert mock_storage.readdata.call_count == 2
+    mock_storage.readdata.assert_any_call("long_term_memory.json")
+    mock_storage.readdata.assert_any_call("party_data.json")
 
 
 def test_add_character(memory_system, mock_storage):
     """Test adding a character to the party"""
-    user_id = "user123"
+    party_id = "party123"
 
     is_new = memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor", "Shields"],
     )
 
     assert is_new is True
-    assert user_id in memory_system.long_term_memory
-    assert "party_members" in memory_system.long_term_memory[user_id]
-    assert "tank1" in memory_system.long_term_memory[user_id]["party_members"]
+    assert party_id in memory_system.party_data
+    assert "party_members" in memory_system.party_data[party_id]
+    assert "tank1" in memory_system.party_data[party_id]["party_members"]
 
-    char = memory_system.long_term_memory[user_id]["party_members"]["tank1"]
+    char = memory_system.party_data[party_id]["party_members"]["tank1"]
     assert char["name"] == "Tank1"
     assert char["role"] == "Tank"
     assert char["gear_preferences"] == ["Heavy Armor", "Shields"]
@@ -51,11 +55,11 @@ def test_add_character(memory_system, mock_storage):
 
 def test_update_character(memory_system, mock_storage):
     """Test updating an existing character"""
-    user_id = "user123"
+    party_id = "party123"
 
     # Add character
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor"],
@@ -63,14 +67,14 @@ def test_update_character(memory_system, mock_storage):
 
     # Update character
     is_new = memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Paladin",
         gear_preferences=["Heavy Armor", "Holy Weapons"],
     )
 
     assert is_new is False
-    char = memory_system.long_term_memory[user_id]["party_members"]["tank1"]
+    char = memory_system.party_data[party_id]["party_members"]["tank1"]
     assert char["role"] == "Paladin"
     assert char["gear_preferences"] == ["Heavy Armor", "Holy Weapons"]
     assert "updated_at" in char
@@ -78,67 +82,67 @@ def test_update_character(memory_system, mock_storage):
 
 def test_remove_character(memory_system, mock_storage):
     """Test removing a character"""
-    user_id = "user123"
+    party_id = "party123"
 
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor"],
     )
 
-    success = memory_system.remove_party_character(user_id, "Tank1")
+    success = memory_system.remove_party_character(party_id, "Tank1")
     assert success is True
-    assert "tank1" not in memory_system.long_term_memory[user_id]["party_members"]
+    assert "tank1" not in memory_system.party_data[party_id]["party_members"]
 
     # Try removing non-existent character
-    success = memory_system.remove_party_character(user_id, "NonExistent")
+    success = memory_system.remove_party_character(party_id, "NonExistent")
     assert success is False
 
 
 def test_get_character(memory_system, mock_storage):
     """Test getting a specific character"""
-    user_id = "user123"
+    party_id = "party123"
 
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor"],
     )
 
-    char = memory_system.get_party_character(user_id, "Tank1")
+    char = memory_system.get_party_character(party_id, "Tank1")
     assert char is not None
     assert char["name"] == "Tank1"
     assert char["role"] == "Tank"
 
     # Test case insensitive lookup
-    char = memory_system.get_party_character(user_id, "tank1")
+    char = memory_system.get_party_character(party_id, "tank1")
     assert char is not None
 
     # Test non-existent character
-    char = memory_system.get_party_character(user_id, "NonExistent")
+    char = memory_system.get_party_character(party_id, "NonExistent")
     assert char is None
 
 
 def test_list_characters(memory_system, mock_storage):
     """Test listing all characters"""
-    user_id = "user123"
+    party_id = "party123"
 
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Healer1",
         role="Healer",
         gear_preferences=["Staves", "Healing"],
     )
 
-    characters = memory_system.list_party_characters(user_id)
+    characters = memory_system.list_party_characters(party_id)
     assert len(characters) == 2
     assert any(char["name"] == "Tank1" for char in characters)
     assert any(char["name"] == "Healer1" for char in characters)
@@ -146,23 +150,23 @@ def test_list_characters(memory_system, mock_storage):
 
 def test_party_summary(memory_system, mock_storage):
     """Test getting party summary for LLM context"""
-    user_id = "user123"
+    party_id = "party123"
 
     # Add some characters
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor", "Shields"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=party_id,
         character_name="Healer1",
         role="Healer",
         gear_preferences=["Staves", "Healing"],
     )
 
-    summary = memory_system.get_party_summary(user_id)
+    summary = memory_system.get_party_summary(party_id)
 
     assert "Tank1" in summary
     assert "Tank" in summary
@@ -174,34 +178,34 @@ def test_party_summary(memory_system, mock_storage):
 
 def test_party_summary_empty(memory_system, mock_storage):
     """Test party summary when no characters exist"""
-    user_id = "user123"
+    party_id = "party123"
 
-    summary = memory_system.get_party_summary(user_id)
+    summary = memory_system.get_party_summary(party_id)
     assert summary == "No party members registered."
 
 
-def test_multiple_users_separate_parties(memory_system, mock_storage):
-    """Test that different users have separate party lists"""
-    user1 = "user123"
-    user2 = "user456"
+def test_multiple_parties_separate(memory_system, mock_storage):
+    """Test that different parties have separate party lists"""
+    party1 = "party123"
+    party2 = "party456"
 
     memory_system.add_party_character(
-        user_id=user1,
+        party_id=party1,
         character_name="Tank1",
         role="Tank",
         gear_preferences=["Heavy Armor"],
     )
     memory_system.add_party_character(
-        user_id=user2,
+        party_id=party2,
         character_name="Healer1",
         role="Healer",
         gear_preferences=["Staves"],
     )
 
-    user1_chars = memory_system.list_party_characters(user1)
-    user2_chars = memory_system.list_party_characters(user2)
+    party1_chars = memory_system.list_party_characters(party1)
+    party2_chars = memory_system.list_party_characters(party2)
 
-    assert len(user1_chars) == 1
-    assert len(user2_chars) == 1
-    assert user1_chars[0]["name"] == "Tank1"
-    assert user2_chars[0]["name"] == "Healer1"
+    assert len(party1_chars) == 1
+    assert len(party2_chars) == 1
+    assert party1_chars[0]["name"] == "Tank1"
+    assert party2_chars[0]["name"] == "Healer1"

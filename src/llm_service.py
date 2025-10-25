@@ -40,13 +40,14 @@ class LLMService:
         await self.graphrag_system.build_knowledge_graph()
 
     def process_query(
-        self, user_id: str, question: str
+        self, user_id: str, party_id: str, question: str
     ) -> Message:
         """
         Process a user query and return the response.
 
         Args:
             user_id: The user ID
+            party_id: The party ID
             question: The user's question
 
         Returns:
@@ -61,7 +62,7 @@ class LLMService:
 
         # Get user and party summaries
         user_summary = self.memory_system.get_user_summary(user_id)
-        party_summary = self.memory_system.get_party_summary(user_id)
+        party_summary = self.memory_system.get_party_summary(party_id)
         
         input_messages = self.build_messages(question, user_id)        
                 
@@ -93,13 +94,14 @@ class LLMService:
         return None
     
     def execute_recommend_gear(
-        self, user_id: str, loot_description: str, excluded_characters: List[str]
+        self, user_id: str, party_id: str, loot_description: str, excluded_characters: List[str]
     ) -> str:
         """
         Execute gear recommendation and return the recommendation text.
 
         Args:
             user_id: The user ID
+            party_id: The party ID
             loot_description: Description of the loot to distribute
             excluded_characters: List of character names to exclude
 
@@ -107,7 +109,7 @@ class LLMService:
             The recommendation text
         """
         # Get all party members
-        all_chars = self.memory_system.list_party_characters(user_id)
+        all_chars = self.memory_system.list_party_characters(party_id)
 
         # Handle empty party case
         if not all_chars:
@@ -164,15 +166,16 @@ class LLMService:
             return f"Error generating recommendations: {error_msg}"
 
     def execute_tool_action(
-        self, tool_name: str, tool_arguments: Dict, user_id: str
+        self, tool_name: str, tool_arguments: Dict, user_id: str, party_id: str
     ) -> str:
         """
         Execute a tool action and return the result.
 
         Args:
-            action: The action to execute (e.g., "add_party_character")
-            parameters: The parameters for the action
+            tool_name: The action to execute (e.g., "add_party_character")
+            tool_arguments: The parameters for the action
             user_id: The user ID
+            party_id: The party ID
 
         Returns:
             Tuple of (success, message)
@@ -184,7 +187,7 @@ class LLMService:
                 gear_preferences = tool_arguments.get("gear_preferences", [])
 
                 is_new = self.memory_system.add_party_character(
-                    user_id, name, role, gear_preferences
+                    party_id, name, role, gear_preferences
                 )
 
                 if is_new:
@@ -196,7 +199,7 @@ class LLMService:
 
             elif tool_name == "remove_party_character":
                 name = tool_arguments.get("name", "")
-                success = self.memory_system.remove_party_character(user_id, name)
+                success = self.memory_system.remove_party_character(party_id, name)
 
                 if success:
                     msg = f"**{name}** has been removed from your party."
@@ -206,7 +209,7 @@ class LLMService:
                     return msg
 
             elif tool_name == "view_party_members":
-                characters = self.memory_system.list_party_characters(user_id)
+                characters = self.memory_system.list_party_characters(party_id)
 
                 if not characters:
                     msg = "You don't have any party members yet."
@@ -229,7 +232,7 @@ class LLMService:
                 excluded_characters = tool_arguments.get("excluded_characters", [])
 
                 recommendation = self.execute_recommend_gear(
-                    user_id, loot_description, excluded_characters
+                    user_id, party_id, loot_description, excluded_characters
                 )
 
                 return recommendation

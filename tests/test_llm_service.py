@@ -92,7 +92,7 @@ class TestProcessQuery:
         llm_service = LLMService(mock_memory)
 
         response = llm_service.process_query(
-            "user123", "What's the weather?"
+            "user123", "party123", "What's the weather?"
         )
 
         assert response == mock_response
@@ -136,7 +136,7 @@ class TestProcessQuery:
 
         llm_service = LLMService(mock_memory)
 
-        llm_service.process_query("user123", "Hello")
+        llm_service.process_query("user123", "party123", "Hello")
 
         mock_memory.update_long_term.assert_called_with("user123", "interaction", None)
         assert (
@@ -170,6 +170,7 @@ class TestExecuteToolAction:
             "add_party_character",
             {"name": "V", "role": "Solo", "gear_preferences": []},
             "user123",
+            "party123",
         )
 
         assert message is not None
@@ -199,6 +200,7 @@ class TestExecuteToolAction:
             "add_party_character",
             {"name": "V", "role": "Netrunner", "gear_preferences": []},
             "user123",
+            "party123",
         )
 
         assert message is not None
@@ -224,7 +226,7 @@ class TestExecuteToolAction:
         llm_service = LLMService(mock_memory)
 
         message = llm_service.execute_tool_action(
-            "remove_party_character", {"name": "V"}, "user123"
+            "remove_party_character", {"name": "V"}, "user123", "party123"
         )
 
         assert message is not None
@@ -251,7 +253,7 @@ class TestExecuteToolAction:
         llm_service = LLMService(mock_memory)
 
         message = llm_service.execute_tool_action(
-            "remove_party_character", {"name": "NonExistent"}, "user123"
+            "remove_party_character", {"name": "NonExistent"}, "user123", "party123"
         )
 
         assert message is not None
@@ -280,7 +282,7 @@ class TestExecuteToolAction:
         llm_service = LLMService(mock_memory)
 
         message = llm_service.execute_tool_action(
-            "view_party_members", {}, "user123"
+            "view_party_members", {}, "user123", "party123"
         )
 
         assert message is not None
@@ -309,7 +311,7 @@ class TestExecuteToolAction:
         llm_service = LLMService(mock_memory)
 
         message = llm_service.execute_tool_action(
-            "view_party_members", {}, "user123"
+            "view_party_members", {}, "user123", "party123"
         )
 
         assert message is not None
@@ -333,7 +335,7 @@ class TestExecuteToolAction:
         llm_service = LLMService(mock_memory)
 
         message = llm_service.execute_tool_action(
-            "unknown_action", {}, "user123"
+            "unknown_action", {}, "user123", "party123"
         )
 
         assert message is not None
@@ -362,7 +364,7 @@ class TestExecuteRecommendGear:
         llm_service = LLMService(mock_memory)
 
         result = llm_service.execute_recommend_gear(
-            "user123", "Assault Rifle", []
+            "user123", "party123", "Assault Rifle", []
         )
 
         assert "don't have any party members" in result.lower()
@@ -405,7 +407,7 @@ class TestExecuteRecommendGear:
 
         llm_service = LLMService(mock_memory)
 
-        result = llm_service.execute_recommend_gear("user123", "Guns", ["V"])
+        result = llm_service.execute_recommend_gear("user123", "party123", "Guns", ["V"])
 
         # Should only recommend for Jackie
         assert result == "Recommendation text"
@@ -431,7 +433,7 @@ class TestExecuteRecommendGear:
 
         llm_service = LLMService(mock_memory)
 
-        result = llm_service.execute_recommend_gear("user123", "Guns", ["V"])
+        result = llm_service.execute_recommend_gear("user123", "party123", "Guns", ["V"])
 
         assert "no party members available" in result.lower()
 

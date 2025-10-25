@@ -33,19 +33,19 @@ def test_get_all_party_members_default(memory_system):
 
     # Add multiple characters
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=blackhand,
         role="Solo",
         gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=johnny,
         role="Rockerboy",
         gear_preferences=["Handguns"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name="Rogue",
         role="Rockerboy",
         gear_preferences=["eddies"],
@@ -66,19 +66,19 @@ def test_exclude_single_character(memory_system):
 
     # Add multiple characters
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=blackhand,
         role="Solo",
         gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=johnny,
         role="Rockerboy",
         gear_preferences=["Handguns"],
     )
     memory_system.add_party_character(
-        user_id=user_id, character_name=rogue, role="Fixer", gear_preferences=["eddies"]
+        party_id=user_id, character_name=rogue, role="Fixer", gear_preferences=["eddies"]
     )
 
     # Simulate excluding Tank1
@@ -102,13 +102,13 @@ def test_exclude_case_insensitive(memory_system):
 
     # Add characters with mixed case names
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=blackhand,
         role="Solo",
         gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=johnny,
         role="Rockerboy",
         gear_preferences=["Handguns"],
@@ -134,13 +134,13 @@ def test_exclude_nonexistent_character(memory_system):
 
     # Add characters
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=blackhand,
         role="Solo",
         gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=johnny,
         role="Rockerboy",
         gear_preferences=["Handguns"],
@@ -167,13 +167,13 @@ def test_exclude_all_characters(memory_system):
 
     # Add characters
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=blackhand,
         role="Solo",
         gear_preferences=["Shoulder arms"],
     )
     memory_system.add_party_character(
-        user_id=user_id,
+        party_id=user_id,
         character_name=johnny,
         role="Rockerboy",
         gear_preferences=["Handguns"],
