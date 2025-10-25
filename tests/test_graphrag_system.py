@@ -25,13 +25,7 @@ class TestGraphRAGSystemInit:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-            llm_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         assert system.driver is not None
         assert system.neo4j_uri == "bolt://localhost:7687"
@@ -54,10 +48,6 @@ class TestGraphRAGSystemInit:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=5,
             retry_delay=2.0,
         )
@@ -83,12 +73,7 @@ class TestConnectionManagement:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         # Should not raise any exception
         system._ensure_connection()
@@ -109,12 +94,7 @@ class TestConnectionManagement:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         mock_operation = Mock(return_value="success")
         result = system._execute_with_retry(mock_operation, "test operation")
@@ -139,10 +119,6 @@ class TestConnectionManagement:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.1,
         )
@@ -173,10 +149,6 @@ class TestConnectionManagement:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=2,
             retry_delay=0.1,
         )
@@ -206,12 +178,7 @@ class TestFileMetadata:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         test_content = b"test file content"
         expected_checksum = hashlib.sha256(test_content).hexdigest()
@@ -236,12 +203,7 @@ class TestFileMetadata:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         with patch("builtins.open", mock_open(read_data=b"content")):
             needs_processing = system._file_needs_processing(Path("/new/file.txt"))
@@ -262,12 +224,7 @@ class TestFileMetadata:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         test_content = b"content"
         checksum = hashlib.sha256(test_content).hexdigest()
@@ -297,12 +254,7 @@ class TestFileMetadata:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         old_content = b"old content"
         new_content = b"new content"
@@ -336,12 +288,7 @@ class TestFileCategorizationAndLoading:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         files = [Path("/file1.pdf"), Path("/file2.md")]
 
@@ -365,12 +312,7 @@ class TestFileCategorizationAndLoading:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         files = [Path("/file1.pdf"), Path("/file2.md")]
 
@@ -393,12 +335,7 @@ class TestFileCategorizationAndLoading:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         mock_page = Mock()
         mock_page.extract_text.return_value = "Test content"
@@ -428,12 +365,7 @@ class TestFileCategorizationAndLoading:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         mock_file_content = "# Test Markdown\n\nThis is test content."
 
@@ -475,12 +407,7 @@ class TestDatabaseOperations:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         # Set up tracked files
         system.processed_files = {
@@ -516,12 +443,7 @@ class TestDatabaseOperations:
         mock_embeddings_instance.embed_query.return_value = [0.1] * 1536
         mock_embeddings.return_value = mock_embeddings_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         chunks = [
             Document(
@@ -552,13 +474,7 @@ class TestDatabaseOperations:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-            llm_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         with (
             patch("src.graphrag_system.VectorRetriever") as mock_retriever_class,
@@ -589,12 +505,7 @@ class TestQueryMethods:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         result = system.get_context_for_query("test query")
 
@@ -614,12 +525,7 @@ class TestQueryMethods:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         result = system.search("test query")
 
@@ -639,12 +545,7 @@ class TestQueryMethods:
         mock_storage_instance.readdata.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-        )
+        system = GraphRAGSystem()
 
         system.close()
 

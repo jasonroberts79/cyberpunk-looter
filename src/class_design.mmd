@@ -1,0 +1,51 @@
+graph TB
+      %% Entry Point
+      bot[Bot<br/>bot.py]
+
+      %% Core Services
+      llm[LLMService<br/>llm_service.py]
+      agentic[AgenticHandler<br/>agentic_handler.py]
+
+      %% Data Layer
+      memory[MemorySystem<br/>memory_system.py]
+      graphrag[GraphRAGSystem<br/>graphrag_system.py]
+      storage[AppStorage<br/>app_storage.py]
+
+      %% External Dependencies
+      openai[OpenAI Client<br/>external]
+      neo4j[Neo4j<br/>external]
+      discord[Discord.py<br/>external]
+
+      %% Bot Dependencies
+      bot --> llm
+      bot --> agentic
+      bot --> memory
+      bot --> graphrag
+      bot --> openai
+      bot --> discord
+
+      %% LLM Service Dependencies
+      llm --> graphrag
+      llm --> memory
+      llm --> openai
+
+      %% Agentic Handler Dependencies
+      agentic -.optional.-> llm
+
+      %% Memory System Dependencies
+      memory --> storage
+
+      %% GraphRAG Dependencies
+      graphrag --> neo4j
+      graphrag --> openai
+
+      %% Styling
+      classDef entryPoint fill:#e1f5ff,stroke:#01579b,stroke-width:3px
+      classDef coreService fill:#fff3e0,stroke:#e65100,stroke-width:2px
+      classDef dataLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+      classDef external fill:#f1f8e9,stroke:#33691e,stroke-width:1px,stroke-dasharray: 5 5
+
+      class bot entryPoint
+      class llm,agentic coreService
+      class memory,graphrag,storage dataLayer
+      class openai,neo4j,discord external

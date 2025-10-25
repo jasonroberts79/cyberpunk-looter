@@ -14,6 +14,7 @@ from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from app_storage import AppStorage
+from app_config import get_config_value
 
 
 class GraphRAGSystem:
@@ -21,36 +22,33 @@ class GraphRAGSystem:
 
     def __init__(
         self,
-        neo4j_uri: str,
-        neo4j_username: str,
-        neo4j_password: str,
-        openai_api_key: str,
-        llm_api_key: Optional[str] = None,
-        llm_model: str = "claude-sonnet-4-5",
-        embedding_model: str = "text-embedding-3-small",
-        embeddings_base_url: str = "https://api.openai.com/v1",
-        llm_base_url: str = "https://api.anthropic.com/v1",
         max_retry_attempts: int = 3,
         retry_delay: float = 1.0,
     ):
         # Store connection parameters for reconnection
-        self.neo4j_uri = neo4j_uri
-        self.neo4j_username = neo4j_username
-        self.neo4j_password = neo4j_password
+        self.neo4j_uri = get_config_value("NEO4J_URI")
+        self.neo4j_username = get_config_value("NEO4J_USERNAME")
+        self.neo4j_password = get_config_value("NEO4J_PASSWORD")
         self.max_retry_attempts = max_retry_attempts
         self.retry_delay = retry_delay
 
-        print(f"Connecting to Neo4j at {neo4j_uri}")
+        print(f"Connecting to Neo4j at {self.neo4j_uri}")
         self.driver_initialized = False
         self._connect_to_neo4j()
 
+        embedding_model = "text-embedding-3-small"
+        embeddings_base_url = get_config_value("OPENAI_EMBEDDINGS_BASE_URL")
+        embeddings_key = get_config_value("OPENAI_EMBEDDINGS_KEY")
         print(f"Initializing OpenAI embeddings: {embedding_model}")
         self.embedder = OpenAIEmbeddings(
-            api_key=openai_api_key,
+            api_key=embeddings_key,
             model=embedding_model,
             base_url=embeddings_base_url,
         )
 
+        llm_model = get_config_value("OPENAI_MODEL")
+        llm_base_url = get_config_value("OPENAI_BASE_URL")
+        llm_api_key = get_config_value("OPENAI_API_KEY")
         self.llm = OpenAILLM(
             api_key=llm_api_key,
             base_url=llm_base_url,

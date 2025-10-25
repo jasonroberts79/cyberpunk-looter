@@ -34,11 +34,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-            llm_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.5,
         )
@@ -62,10 +57,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.5,
         )
@@ -99,10 +90,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.5,
         )
@@ -142,11 +129,6 @@ class TestNeo4jConnectionResilience:
         ]
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
-            llm_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.1,
         )
@@ -177,10 +159,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.1,
         )
@@ -217,10 +195,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=2,
             retry_delay=0.1,
         )
@@ -246,10 +220,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.1,
         )
@@ -282,10 +252,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.1,
         )
@@ -318,10 +284,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=3,
             retry_delay=0.5,
         )
@@ -348,10 +310,6 @@ class TestNeo4jConnectionResilience:
         mock_storage.return_value = mock_storage_instance
 
         system = GraphRAGSystem(
-            neo4j_uri="bolt://localhost:7687",
-            neo4j_username="neo4j",
-            neo4j_password="password",
-            openai_api_key="test-key",
             max_retry_attempts=5,
             retry_delay=2.0,
         )

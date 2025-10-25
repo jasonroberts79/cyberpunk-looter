@@ -9,8 +9,7 @@ class MemorySystem:
     def __init__(self, memory_file: str = "long_term_memory.json"):
         self.memory_file = memory_file
         self.storage = AppStorage()
-        self.short_term_memory: Dict[str, List[Dict]] = defaultdict(list)
-        self.last_response_ids: Dict[str, str] = {}
+        self.short_term_memory: Dict[str, List[Dict]] = defaultdict(list)        
         self.long_term_memory: Dict[str, Dict] = {}
         self.load_long_term_memory()
 
@@ -48,16 +47,6 @@ class MemorySystem:
     def clear_short_term(self, user_id: str):
         if user_id in self.short_term_memory:
             del self.short_term_memory[user_id]
-        if user_id in self.last_response_ids:
-            del self.last_response_ids[user_id]
-
-    def get_last_response_id(self, user_id: str) -> Optional[str]:
-        """Get the last response ID for a user's conversation."""
-        return self.last_response_ids.get(user_id)
-
-    def set_last_response_id(self, user_id: str, response_id: str):
-        """Save the response ID from the OpenAI-compatible Responses API."""
-        self.last_response_ids[user_id] = response_id
 
     def update_long_term(self, user_id: str, key: str, value: Any):
         if user_id not in self.long_term_memory:

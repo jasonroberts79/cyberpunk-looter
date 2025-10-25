@@ -1,3 +1,4 @@
 . uv run ruff format
 . uv run ruff check --fix
-. uvx ty check
+. uv run pyright
+. uv run pytest
