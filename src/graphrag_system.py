@@ -138,13 +138,9 @@ class GraphRAGSystem:
                     except Exception as reconnect_error:
                         print(f"Reconnection failed: {reconnect_error}")
                 else:
-                    print(
-                        f"{operation_name} failed after {self.max_retry_attempts} attempts"
-                    )
+                    print(f"{operation_name} failed after {self.max_retry_attempts} attempts")
 
-        raise (
-            last_exception if last_exception else Exception(f"{operation_name} failed")
-        )
+        raise (last_exception if last_exception else Exception(f"{operation_name} failed"))
 
     def _get_file_metadata(self, file_path: Path) -> Dict:
         sha256_hash = hashlib.sha256()
@@ -259,9 +255,7 @@ class GraphRAGSystem:
                         source=source,
                     )
 
-            self._execute_with_retry(
-                delete_chunks, f"Delete chunks for {Path(deleted_path).name}"
-            )
+            self._execute_with_retry(delete_chunks, f"Delete chunks for {Path(deleted_path).name}")
             del self.processed_files[deleted_path]
             print(f"Removed: {Path(deleted_path).name}")
 
@@ -285,9 +279,7 @@ class GraphRAGSystem:
 
         return files_to_process, unchanged_files
 
-    async def _load_documents_from_files(
-        self, files_to_process: List[Path]
-    ) -> List[Document]:
+    async def _load_documents_from_files(self, files_to_process: List[Path]) -> List[Document]:
         """Load documents from PDF and Markdown files."""
         documents = []
 
@@ -360,9 +352,7 @@ class GraphRAGSystem:
                         source=source,
                     )
 
-            self._execute_with_retry(
-                remove_old_chunks, f"Remove old chunks for {file.name}"
-            )
+            self._execute_with_retry(remove_old_chunks, f"Remove old chunks for {file.name}")
 
     def _create_chunk_nodes(self, splits: List[Document]) -> int:
         """Create chunk nodes in Neo4j with embeddings."""
@@ -393,9 +383,7 @@ class GraphRAGSystem:
                                 """,
                                 text=chunk_param.page_content,
                                 source=chunk_param.metadata.get("source", "unknown"),
-                                filename=chunk_param.metadata.get(
-                                    "filename", "unknown"
-                                ),
+                                filename=chunk_param.metadata.get("filename", "unknown"),
                                 embedding=embedding_param,
                                 chunk_index=idx_param,
                             )
@@ -428,9 +416,7 @@ class GraphRAGSystem:
                         source=source,
                     )
 
-            self._execute_with_retry(
-                create_relationships, f"Create relationships for {file.name}"
-            )
+            self._execute_with_retry(create_relationships, f"Create relationships for {file.name}")
 
     def _initialize_retriever(self):
         """Initialize the retriever and RAG components."""
@@ -456,9 +442,7 @@ class GraphRAGSystem:
             return
 
         # Gather all PDF and Markdown files
-        all_files = list(knowledge_path.glob("**/*.pdf")) + list(
-            knowledge_path.glob("**/*.md")
-        )
+        all_files = list(knowledge_path.glob("**/*.pdf")) + list(knowledge_path.glob("**/*.md"))
         current_file_paths = {str(f) for f in all_files}
 
         # Remove chunks for deleted files
@@ -593,9 +577,7 @@ class GraphRAGSystem:
                             full_context = text
                             if next_text:
                                 full_context += "\n\n" + next_text
-                            context_parts.append(
-                                f"[Source {i}: {filename}]\n{full_context}\n"
-                            )
+                            context_parts.append(f"[Source {i}: {filename}]\n{full_context}\n")
 
                     if context_parts:
                         return "\n".join(context_parts)

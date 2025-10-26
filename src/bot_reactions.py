@@ -9,9 +9,7 @@ class DiscordReactions:
         self.pending_confirmations: Dict[str, Dict] = {}
         self.llm_service = llm_service
 
-    async def handle_approval(
-        self, message: discord.Message, confirmation: Dict
-    ) -> None:
+    async def handle_approval(self, message: discord.Message, confirmation: Dict) -> None:
         """Handle approval of a confirmation."""
         try:
             # Mark confirmation as processed
@@ -43,9 +41,7 @@ class DiscordReactions:
             # Remove from pending confirmations
             self.remove_pending_confirmation(str(message.id))
 
-    async def handle_rejection(
-        self, message: discord.Message, confirmation: Dict
-    ) -> None:
+    async def handle_rejection(self, message: discord.Message, confirmation: Dict) -> None:
         """Handle rejection of a confirmation."""
         # Mark confirmation as processed
         confirmation["processed"] = True

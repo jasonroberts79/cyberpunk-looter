@@ -39,9 +39,7 @@ class LLMService:
     async def initialize(self):
         await self.graphrag_system.build_knowledge_graph()
 
-    def process_query(
-        self, user_id: str, party_id: str, question: str
-    ) -> Message:
+    def process_query(self, user_id: str, party_id: str, question: str) -> Message:
         """
         Process a user query and return the response.
 
@@ -55,7 +53,6 @@ class LLMService:
         """
         # Update memory
         self.memory_system.update_long_term(user_id, "interaction", None)
-        self.memory_system.add_to_short_term(user_id, "user", question)
 
         # Get context from GraphRAG
         context = self.graphrag_system.get_context_for_query(question, k=10)
@@ -63,10 +60,8 @@ class LLMService:
         # Get user and party summaries
         user_summary = self.memory_system.get_user_summary(user_id)
         party_summary = self.memory_system.get_party_summary(party_id)
-        
-        input_messages = self.build_messages(question, user_id)        
-                
-        input_messages.append({"role": "user", "content": question})
+
+        input_messages = self.build_messages(question, user_id)
 
         # Call OpenAI API
         response = self.claude.messages.create(
@@ -76,25 +71,27 @@ class LLMService:
             temperature=0.6,
             tools=tool_system.get_tool_definitions(),
             tool_choice={"type": "auto", "disable_parallel_tool_use": False},
-            system=create_main_system_prompt(context, user_summary, party_summary)
+            system=create_main_system_prompt(context, user_summary, party_summary),
         )
 
-        # Extract answer text
-        answer = self.get_answer(response)
-        if( answer ):
-            self.memory_system.add_to_short_term(user_id, "assistant", answer)
-        
+        self.memory_system.add_to_short_term(user_id, "user", question)
+        self.memory_system.add_to_short_term(user_id, "assistant", self.get_answer(response))
+
         return response
-    
+
     def get_answer(self, response) -> Optional[str]:
         text_answer = [r for r in response.content if r.type == "text"]
 
-        if( text_answer ):
+        if text_answer:
             return text_answer[-1].text
         return None
-    
+
     def execute_recommend_gear(
-        self, user_id: str, party_id: str, loot_description: str, excluded_characters: List[str]
+        self,
+        user_id: str,
+        party_id: str,
+        loot_description: str,
+        excluded_characters: List[str],
     ) -> str:
         """
         Execute gear recommendation and return the recommendation text.
@@ -113,19 +110,21 @@ class LLMService:
 
         # Handle empty party case
         if not all_chars:
-            return "You don't have any party members registered yet. Please add party members first."
+            return (
+                "You don't have any party members registered yet. Please add party members first."
+            )
 
         # Filter out excluded characters
         if excluded_characters:
             excluded_lower = [name.lower() for name in excluded_characters]
-            all_chars = [
-                char for char in all_chars if char["name"].lower() not in excluded_lower
-            ]
+            all_chars = [char for char in all_chars if char["name"].lower() not in excluded_lower]
 
         if not all_chars:
             return "No party members available after exclusions."
 
-        context = self.graphrag_system.get_context_for_query(f"""Look up information related to this gear: {loot_description}""", k=10)
+        context = self.graphrag_system.get_context_for_query(
+            f"""Look up information related to this gear: {loot_description}""", k=10
+        )
 
         # Build party context for the LLM
         party_context = "Party Members:\n"
@@ -141,7 +140,7 @@ class LLMService:
         )
 
         input_messages = self.build_messages(user_prompt, user_id)
-        
+
         try:
             response = self.claude.messages.create(
                 max_tokens=20000,
@@ -150,13 +149,13 @@ class LLMService:
                 temperature=0.6,
                 tools=tool_system.get_tool_definitions(),
                 tool_choice={"type": "auto", "disable_parallel_tool_use": False},
-                system=create_gear_recommendation_system_prompt()
+                system=create_gear_recommendation_system_prompt(),
             )
 
             recommendation = self.get_answer(response)
             if recommendation:
                 self.memory_system.add_to_short_term(user_id, "assistant", recommendation)
-            else:            
+            else:
                 recommendation = "I couldn't generate recommendations."
 
             return recommendation
@@ -178,8 +177,9 @@ class LLMService:
             party_id: The party ID
 
         Returns:
-            Tuple of (success, message)
+            The tool response
         """
+        tool_response = ""
         try:
             if tool_name == "add_party_character":
                 name = tool_arguments.get("name", "")
@@ -191,55 +191,47 @@ class LLMService:
                 )
 
                 if is_new:
-                    msg = f"**{name}** has been added to your party!"
+                    tool_response = f"**{name}** has been added to your party!"
                 else:
-                    msg = f"**{name}** has been updated in your party!"
-
-                return msg
-
+                    tool_response = f"**{name}** has been updated in your party!"
             elif tool_name == "remove_party_character":
                 name = tool_arguments.get("name", "")
                 success = self.memory_system.remove_party_character(party_id, name)
 
                 if success:
-                    msg = f"**{name}** has been removed from your party."
-                    return msg
+                    tool_response = f"**{name}** has been removed from your party."
                 else:
-                    msg = f"Character **{name}** not found in your party."
-                    return msg
-
+                    tool_response = f"Character **{name}** not found in your party."
             elif tool_name == "view_party_members":
                 characters = self.memory_system.list_party_characters(party_id)
 
-                if not characters:
-                    msg = "You don't have any party members yet."
-                    return msg
-
-                msg = "**Your Party Members:**\n\n"
-                for char in characters:
-                    msg += f"**{char['name']}**\n"
-                    msg += f"• Role: {char['role']}\n"
-                    if char.get("gear_preferences"):
-                        msg += f"• Gear Preferences: {', '.join(char['gear_preferences'])}\n"
-                    else:
-                        msg += "• Gear Preferences: None\n"
-                    msg += "\n"
-
-                return msg
+                if not characters or len(characters) == 0:
+                    tool_response = "You don't have any party members yet."
+                else:
+                    tool_response = "**Your Party Members:**\n\n"
+                    for char in characters:
+                        tool_response += f"**{char['name']}**\n"
+                        tool_response += f"• Role: {char['role']}\n"
+                        if char.get("gear_preferences"):
+                            tool_response += (
+                                f"• Gear Preferences: {', '.join(char['gear_preferences'])}\n"
+                            )
+                        else:
+                            tool_response += "• Gear Preferences: None\n"
+                        tool_response += "\n"
 
             elif tool_name == "recommend_gear":
                 loot_description = tool_arguments.get("loot_description", "")
                 excluded_characters = tool_arguments.get("excluded_characters", [])
 
-                recommendation = self.execute_recommend_gear(
+                tool_response = self.execute_recommend_gear(
                     user_id, party_id, loot_description, excluded_characters
                 )
-
-                return recommendation
-
             else:
-                return f"Unknown action: {tool_name}"
+                tool_response = f"Unknown action: {tool_name}"
 
+            self.memory_system.add_to_short_term(user_id, "assistant", tool_response)
+            return tool_response
         except Exception as e:
             return f"Error executing action: {str(e)}"
 
@@ -247,9 +239,10 @@ class LLMService:
         short_term_context = self.memory_system.get_short_term_context(user_id, max_messages=10)
         input_messages: list[MessageParam] = []
         if short_term_context is not None and hasattr(short_term_context, "__iter__"):
-            input_messages = [{"role": m["role"], "content": m["content"]} for m in short_term_context]
-        
-            
+            input_messages = [
+                {"role": m["role"], "content": m["content"]} for m in short_term_context
+            ]
+
         input_messages.append({"role": "user", "content": user_prompt})
         return input_messages
 

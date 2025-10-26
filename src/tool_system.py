@@ -3,13 +3,15 @@
 from anthropic.types import ToolParam
 from typing import Dict, List
 
+
 def is_tool_confirmation_required(tool_name: str) -> bool:
     """Check if a tool requires confirmation before execution."""
     tools_requiring_confirmation = {
         "add_party_character",
-        "remove_party_character",            
+        "remove_party_character",
     }
     return tool_name in tools_requiring_confirmation
+
 
 def get_tool_definitions() -> List[ToolParam]:
     """Get tool definitions for OpenAI-compatible API."""
@@ -76,6 +78,7 @@ def get_tool_definitions() -> List[ToolParam]:
             },
         },
     ]
+
 
 def generate_confirmation_message(action: str, parameters: Dict) -> str:
     """Generate a confirmation message based on action and parameters."""

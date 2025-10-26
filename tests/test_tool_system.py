@@ -1,7 +1,6 @@
 """Unit tests for src.tool_system."""
 
 from typing import Any, Dict, cast
-from unittest.mock import Mock
 import src.tool_system
 
 
@@ -46,9 +45,7 @@ class TestToolDefinitions:
     def test_remove_party_character_tool_structure(self):
         """Test remove_party_character tool has correct structure."""
         tools = src.tool_system.get_tool_definitions()
-        remove_char_tool = next(
-            t for t in tools if t["name"] == "remove_party_character"
-        )
+        remove_char_tool = next(t for t in tools if t["name"] == "remove_party_character")
 
         assert "description" in remove_char_tool
         assert "input_schema" in remove_char_tool
@@ -87,6 +84,7 @@ class TestToolDefinitions:
         assert "required" in input_schema
         assert input_schema["required"] == ["loot_description"]
 
+
 class TestGenerateConfirmationMessage:
     """Test generate_confirmation_message method."""
 
@@ -98,9 +96,7 @@ class TestGenerateConfirmationMessage:
             "gear_preferences": ["Assault Rifles", "Body Armor"],
         }
 
-        message = src.tool_system.generate_confirmation_message(
-            "add_party_character", parameters
-        )
+        message = src.tool_system.generate_confirmation_message("add_party_character", parameters)
 
         assert "V" in message
         assert "Solo" in message
@@ -117,9 +113,7 @@ class TestGenerateConfirmationMessage:
             "gear_preferences": [],
         }
 
-        message = src.tool_system.generate_confirmation_message(
-            "add_party_character", parameters
-        )
+        message = src.tool_system.generate_confirmation_message("add_party_character", parameters)
 
         assert "Jackie" in message
         assert "Fixer" in message
@@ -142,9 +136,7 @@ class TestGenerateConfirmationMessage:
         """Test confirmation message for viewing party members."""
         parameters = {}
 
-        message = src.tool_system.generate_confirmation_message(
-            "view_party_members", parameters
-        )
+        message = src.tool_system.generate_confirmation_message("view_party_members", parameters)
 
         assert "party members" in message.lower()
         assert "👍" in message

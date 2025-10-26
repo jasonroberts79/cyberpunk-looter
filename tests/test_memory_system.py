@@ -19,7 +19,7 @@ class TestMemorySystemInit:
 
         assert memory.memory_file == "long_term_memory.json"
         assert memory.storage is not None
-        assert memory.short_term_memory == {}        
+        assert memory.short_term_memory == {}
         assert memory.long_term_memory == {}
 
     @patch("src.memory_system.AppStorage")
@@ -133,6 +133,7 @@ class TestShortTermMemory:
 
         assert "user123" not in memory.short_term_memory
 
+
 class TestLongTermMemory:
     """Test long-term memory operations."""
 
@@ -191,12 +192,8 @@ class TestLongTermMemory:
         memory.update_long_term("user123", "topic", "Cyberpunk 2077")
         memory.update_long_term("user123", "topic", "Gear Management")
 
-        assert (
-            "Cyberpunk 2077" in memory.long_term_memory["user123"]["topics_discussed"]
-        )
-        assert (
-            "Gear Management" in memory.long_term_memory["user123"]["topics_discussed"]
-        )
+        assert "Cyberpunk 2077" in memory.long_term_memory["user123"]["topics_discussed"]
+        assert "Gear Management" in memory.long_term_memory["user123"]["topics_discussed"]
 
     @patch("src.memory_system.AppStorage")
     def test_update_long_term_topic_no_duplicates(self, mock_storage_class):
@@ -210,10 +207,7 @@ class TestLongTermMemory:
         memory.update_long_term("user123", "topic", "Cyberpunk")
         memory.update_long_term("user123", "topic", "Cyberpunk")
 
-        assert (
-            memory.long_term_memory["user123"]["topics_discussed"].count("Cyberpunk")
-            == 1
-        )
+        assert memory.long_term_memory["user123"]["topics_discussed"].count("Cyberpunk") == 1
 
     @patch("src.memory_system.AppStorage")
     def test_get_long_term_context(self, mock_storage_class):

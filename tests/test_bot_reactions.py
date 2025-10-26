@@ -246,9 +246,7 @@ class TestHandleApproval:
     async def test_handle_approval_error(self):
         """Test approval handling when execution fails."""
         mock_llm_service = Mock(spec=LLMService)
-        mock_llm_service.execute_tool_action = Mock(
-            side_effect=Exception("Execution error")
-        )
+        mock_llm_service.execute_tool_action = Mock(side_effect=Exception("Execution error"))
         reactions = DiscordReactions(mock_llm_service)
 
         mock_message = AsyncMock(spec=discord.Message)

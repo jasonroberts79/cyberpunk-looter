@@ -99,17 +99,15 @@ async def ask_question(ctx: Context, *, question: str):
                     arguments = msg["arguments"]
                     if not tool_system.is_tool_confirmation_required(name):
                         # Execute the action directly
-                        result_message= llm_service.execute_tool_action(
+                        result_message = llm_service.execute_tool_action(
                             name, arguments, user_id, party_id
                         )
 
                         await ctx.send(result_message)
                         continue
-                    
+
                     sent_message = await ctx.send(
-                        tool_system.generate_confirmation_message(
-                            name, arguments
-                        )
+                        tool_system.generate_confirmation_message(name, arguments)
                     )
 
                     # Add reactions
@@ -124,13 +122,13 @@ async def ask_question(ctx: Context, *, question: str):
                         parameters=arguments,
                         channel_id=str(ctx.channel.id),
                     )
+                return  # Exit after handling tool calls
+
             # Get the answer text
             answer = llm_service.get_answer(response)
             if not answer:
                 await ctx.send("I couldn't generate a response.")
                 return
-            
-            memory_system.add_to_short_term(user_id, "assistant", answer)
 
             print(f"Answer to user {user_id}: {answer}")
             if len(answer) > 2000:
@@ -141,7 +139,7 @@ async def ask_question(ctx: Context, *, question: str):
                 await ctx.send(answer)
 
         except Exception as e:
-            error_msg = str(e)            
+            error_msg = str(e)
 
             # Build detailed error log
             error_log = [

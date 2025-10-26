@@ -12,9 +12,7 @@ GAME_CONTEXT = (
 )
 
 
-def create_main_system_prompt(
-    context: str, user_summary: str, party_summary: str
-) -> str:
+def create_main_system_prompt(context: str, user_summary: str, party_summary: str) -> str:
     """
     Create the main system prompt for the LLM assistant.
 

@@ -69,3 +69,9 @@ defineConstant = { DEBUG = true }
 
 reportMissingImports = "error"
 reportMissingTypeStubs = false
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+docstring-code-format = true

@@ -209,9 +209,7 @@ class TestNeo4jConnectionResilience:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_handles_session_expired(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_handles_session_expired(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test that SessionExpired exceptions are handled."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -241,9 +239,7 @@ class TestNeo4jConnectionResilience:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_handles_transient_error(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_handles_transient_error(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test that TransientError exceptions are handled."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -273,9 +269,7 @@ class TestNeo4jConnectionResilience:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_connection_cleanup(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_connection_cleanup(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test that connections are properly closed."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -299,9 +293,7 @@ class TestNeo4jConnectionResilience:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_custom_retry_parameters(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_custom_retry_parameters(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test that custom retry parameters are properly set."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver

@@ -31,7 +31,7 @@ class LLMCLIHarness:
         load_dotenv()
 
         self.user_id = "Jason(CLI)"
-        self.party_id = os.getenv('RED_PARTY_ID', 'default_cli_party')
+        self.party_id = os.getenv("RED_PARTY_ID", "default_cli_party")
 
     def print_banner(self):
         """Print welcome banner."""
@@ -77,11 +77,6 @@ class LLMCLIHarness:
         print("    exit     - Exit the CLI\n")
 
     def handle_tool_calls(self, tool_calls: list) -> bool:
-        assert self.llm_service is not None
-        """Handle tool calls with user confirmation."""
-        if not tool_calls:
-            return False
-
         for tool_call in tool_calls:
             tool_name = tool_call["name"]
             tool_arguments = tool_call["arguments"]
@@ -106,9 +101,7 @@ class LLMCLIHarness:
 
             # Get user confirmation
             while True:
-                response = (
-                    input(f"{Colors.BOLD}Confirm? (y/n): {Colors.END}").strip().lower()
-                )
+                response = input(f"{Colors.BOLD}Confirm? (y/n): {Colors.END}").strip().lower()
                 if response in ["y", "yes"]:
                     # Execute the action
                     result_message = self.llm_service.execute_tool_action(
@@ -164,9 +157,7 @@ class LLMCLIHarness:
         while True:
             try:
                 # Get user input
-                user_input = input(
-                    f"{Colors.BOLD}{Colors.GREEN}You: {Colors.END}"
-                ).strip()
+                user_input = input(f"{Colors.BOLD}{Colors.GREEN}You: {Colors.END}").strip()
 
                 if not user_input:
                     continue

@@ -124,9 +124,7 @@ class TestConnectionManagement:
         )
 
         # First call fails, second succeeds
-        mock_operation = Mock(
-            side_effect=[ServiceUnavailable("Connection lost"), "success"]
-        )
+        mock_operation = Mock(side_effect=[ServiceUnavailable("Connection lost"), "success"])
         result = system._execute_with_retry(mock_operation, "test operation")
 
         assert result == "success"
@@ -278,9 +276,7 @@ class TestFileCategorizationAndLoading:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_categorize_files_all_new(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_categorize_files_all_new(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test categorizing files when all are new."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -394,9 +390,7 @@ class TestDatabaseOperations:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_remove_deleted_files(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_remove_deleted_files(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test removal of deleted files from knowledge graph."""
         mock_driver = Mock()
         mock_session = Mock()
@@ -426,9 +420,7 @@ class TestDatabaseOperations:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_create_chunk_nodes(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_create_chunk_nodes(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test creation of chunk nodes in Neo4j."""
         mock_driver = Mock()
         mock_session = Mock()
@@ -464,9 +456,7 @@ class TestDatabaseOperations:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_initialize_retriever(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_initialize_retriever(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test retriever initialization."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -515,9 +505,7 @@ class TestQueryMethods:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_search_no_rag(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_search_no_rag(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test search when RAG is not initialized."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
@@ -535,9 +523,7 @@ class TestQueryMethods:
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
     @patch("src.graphrag_system.AppStorage")
-    def test_close_connection(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
-    ):
+    def test_close_connection(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test closing the Neo4j connection."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver

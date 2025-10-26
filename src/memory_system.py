@@ -6,7 +6,11 @@ from app_storage import AppStorage
 
 
 class MemorySystem:
-    def __init__(self, memory_file: str = "long_term_memory.json", party_file: str = "party_data.json"):
+    def __init__(
+        self,
+        memory_file: str = "long_term_memory.json",
+        party_file: str = "party_data.json",
+    ):
         self.memory_file = memory_file
         self.party_file = party_file
         self.storage = AppStorage()
@@ -54,7 +58,7 @@ class MemorySystem:
         except Exception as e:
             print(f"Error saving party data: {e}")
 
-    def add_to_short_term(self, user_id: str, role: str, content: str):
+    def add_to_short_term(self, user_id: str, role: str, content: Optional[str]):
         self.short_term_memory[user_id].append(
             {"role": role, "content": content, "timestamp": datetime.now().isoformat()}
         )
@@ -82,9 +86,7 @@ class MemorySystem:
 
         if key == "interaction":
             self.long_term_memory[user_id]["interaction_count"] += 1
-            self.long_term_memory[user_id]["last_interaction"] = (
-                datetime.now().isoformat()
-            )
+            self.long_term_memory[user_id]["last_interaction"] = datetime.now().isoformat()
         elif key == "preference":
             if "preferences" not in self.long_term_memory[user_id]:
                 self.long_term_memory[user_id]["preferences"] = {}
@@ -109,25 +111,17 @@ class MemorySystem:
         summary_parts = []
 
         if user_data.get("interaction_count", 0) > 0:
-            summary_parts.append(
-                f"We've interacted {user_data['interaction_count']} times."
-            )
+            summary_parts.append(f"We've interacted {user_data['interaction_count']} times.")
 
         if user_data.get("preferences"):
-            prefs = ", ".join(
-                [f"{k}: {v}" for k, v in user_data["preferences"].items()]
-            )
+            prefs = ", ".join([f"{k}: {v}" for k, v in user_data["preferences"].items()])
             summary_parts.append(f"Your preferences: {prefs}")
 
         if user_data.get("topics_discussed"):
             topics = ", ".join(user_data["topics_discussed"][-5:])
             summary_parts.append(f"Topics we've discussed: {topics}")
 
-        return (
-            " ".join(summary_parts)
-            if summary_parts
-            else "This is our first conversation."
-        )
+        return " ".join(summary_parts) if summary_parts else "This is our first conversation."
 
     # Party Management Methods
 
@@ -154,9 +148,7 @@ class MemorySystem:
             "gear_preferences": gear_preferences,
             "created_at": datetime.now().isoformat()
             if is_new
-            else self.party_data[party_id]["party_members"][character_key].get(
-                "created_at"
-            ),
+            else self.party_data[party_id]["party_members"][character_key].get("created_at"),
             "updated_at": datetime.now().isoformat(),
         }
 
@@ -176,9 +168,7 @@ class MemorySystem:
             return True
         return False
 
-    def get_party_character(
-        self, party_id: str, character_name: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_party_character(self, party_id: str, character_name: str) -> Optional[Dict[str, Any]]:
         """Get a specific party character by name."""
         party_info = self.party_data.get(party_id)
         if not party_info or "party_members" not in party_info:
@@ -190,7 +180,7 @@ class MemorySystem:
     def list_party_characters(self, party_id: str) -> List[Dict[str, Any]]:
         """List all party characters for a party."""
         party_info = self.party_data.get(party_id)
-        if not party_info or "party_members" not in party_info:
+        if not party_info or "party_members" not in party_info or len(party_info) == 0:
             return []
 
         return list(party_info["party_members"].values())

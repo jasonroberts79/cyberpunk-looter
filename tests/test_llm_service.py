@@ -1,6 +1,5 @@
 """Unit tests for LLMService."""
 
-import pytest
 from unittest.mock import Mock, patch
 from src.llm_service import LLMService
 from src.memory_system import MemorySystem
@@ -57,9 +56,7 @@ class TestProcessQuery:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    def test_process_query(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_process_query(self, mock_config, mock_anthropic, mock_graphrag):
         """Test processing a query without tool calls."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -91,9 +88,7 @@ class TestProcessQuery:
 
         llm_service = LLMService(mock_memory)
 
-        response = llm_service.process_query(
-            "user123", "party123", "What's the weather?"
-        )
+        response = llm_service.process_query("user123", "party123", "What's the weather?")
 
         assert response == mock_response
         mock_memory.add_to_short_term.assert_called()
@@ -101,9 +96,7 @@ class TestProcessQuery:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    def test_process_query_updates_memory(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_process_query_updates_memory(self, mock_config, mock_anthropic, mock_graphrag):
         """Test that query updates memory correctly."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -139,9 +132,7 @@ class TestProcessQuery:
         llm_service.process_query("user123", "party123", "Hello")
 
         mock_memory.update_long_term.assert_called_with("user123", "interaction", None)
-        assert (
-            mock_memory.add_to_short_term.call_count == 2
-        )  # User message + assistant response
+        assert mock_memory.add_to_short_term.call_count == 2  # User message + assistant response
 
 
 class TestExecuteToolAction:
@@ -150,10 +141,7 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
-    def test_execute_add_party_character_new(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_execute_add_party_character_new(self, mock_config, mock_anthropic, mock_graphrag):
         """Test executing add_party_character for new character."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -180,10 +168,7 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
-    def test_execute_add_party_character_update(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_execute_add_party_character_update(self, mock_config, mock_anthropic, mock_graphrag):
         """Test executing add_party_character for existing character."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -209,7 +194,6 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
     def test_execute_remove_party_character_success(
         self, mock_config, mock_anthropic, mock_graphrag
     ):
@@ -236,7 +220,6 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
     def test_execute_remove_party_character_not_found(
         self, mock_config, mock_anthropic, mock_graphrag
     ):
@@ -262,7 +245,6 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
     def test_execute_view_party_members_with_members(
         self, mock_config, mock_anthropic, mock_graphrag
     ):
@@ -281,9 +263,7 @@ class TestExecuteToolAction:
 
         llm_service = LLMService(mock_memory)
 
-        message = llm_service.execute_tool_action(
-            "view_party_members", {}, "user123", "party123"
-        )
+        message = llm_service.execute_tool_action("view_party_members", {}, "user123", "party123")
 
         assert message is not None
         assert "V" in message
@@ -294,10 +274,7 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
-    def test_execute_view_party_members_empty(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_execute_view_party_members_empty(self, mock_config, mock_anthropic, mock_graphrag):
         """Test executing view_party_members with no characters."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -310,9 +287,7 @@ class TestExecuteToolAction:
 
         llm_service = LLMService(mock_memory)
 
-        message = llm_service.execute_tool_action(
-            "view_party_members", {}, "user123", "party123"
-        )
+        message = llm_service.execute_tool_action("view_party_members", {}, "user123", "party123")
 
         assert message is not None
         assert "don't have any" in message.lower()
@@ -320,10 +295,7 @@ class TestExecuteToolAction:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
-    def test_execute_unknown_action(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_execute_unknown_action(self, mock_config, mock_anthropic, mock_graphrag):
         """Test executing unknown action."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -334,9 +306,7 @@ class TestExecuteToolAction:
         mock_memory = Mock(spec=MemorySystem)
         llm_service = LLMService(mock_memory)
 
-        message = llm_service.execute_tool_action(
-            "unknown_action", {}, "user123", "party123"
-        )
+        message = llm_service.execute_tool_action("unknown_action", {}, "user123", "party123")
 
         assert message is not None
         assert "Unknown action" in message
@@ -347,10 +317,8 @@ class TestExecuteRecommendGear:
 
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
-    @patch("src.llm_service.get_config_value")    
-    def test_execute_recommend_gear_no_party(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    @patch("src.llm_service.get_config_value")
+    def test_execute_recommend_gear_no_party(self, mock_config, mock_anthropic, mock_graphrag):
         """Test gear recommendation with no party members."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -363,9 +331,7 @@ class TestExecuteRecommendGear:
 
         llm_service = LLMService(mock_memory)
 
-        result = llm_service.execute_recommend_gear(
-            "user123", "party123", "Assault Rifle", []
-        )
+        result = llm_service.execute_recommend_gear("user123", "party123", "Assault Rifle", [])
 
         assert "don't have any party members" in result.lower()
 
@@ -415,10 +381,7 @@ class TestExecuteRecommendGear:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    
-    def test_execute_recommend_gear_all_excluded(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_execute_recommend_gear_all_excluded(self, mock_config, mock_anthropic, mock_graphrag):
         """Test gear recommendation when all members are excluded."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -444,9 +407,7 @@ class TestExtractToolCalls:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    def test_extract_tool_calls_anthropic_format(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_extract_tool_calls_anthropic_format(self, mock_config, mock_anthropic, mock_graphrag):
         """Test extracting tool calls in Anthropic format."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -474,9 +435,7 @@ class TestExtractToolCalls:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    def test_extract_tool_calls_no_tools(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_extract_tool_calls_no_tools(self, mock_config, mock_anthropic, mock_graphrag):
         """Test extracting tool calls when there are none."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",
@@ -503,9 +462,7 @@ class TestExtractToolCalls:
     @patch("src.llm_service.GraphRAGSystem")
     @patch("src.llm_service.Anthropic")
     @patch("src.llm_service.get_config_value")
-    def test_extract_tool_calls_multiple(
-        self, mock_config, mock_anthropic, mock_graphrag
-    ):
+    def test_extract_tool_calls_multiple(self, mock_config, mock_anthropic, mock_graphrag):
         """Test extracting multiple tool calls."""
         mock_config.side_effect = lambda key: {
             "OPENAI_MODEL": "claude-3-5-sonnet-20241022",

@@ -28,9 +28,7 @@ class TestAppStorageInit:
     @patch.dict("os.environ", {}, clear=True)
     def test_init_missing_bucket_name(self, mock_client):
         """Test initialization fails without GCS_BUCKET_NAME."""
-        with pytest.raises(
-            ValueError, match="GCS_BUCKET_NAME environment variable is not set"
-        ):
+        with pytest.raises(ValueError, match="GCS_BUCKET_NAME environment variable is not set"):
             AppStorage()
 
 
