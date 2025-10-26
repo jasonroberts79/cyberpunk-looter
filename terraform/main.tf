@@ -215,6 +215,7 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
     }
 
     containers {
+      name = var.service_name
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
 
       resources {
