@@ -3,6 +3,7 @@ receivers:
     protocols:
       grpc:
       http:
+
 exporters:
   googlecloud:
     log:
@@ -24,9 +25,9 @@ service:
       exporters: [googlecloud]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter]
+      processors: [memory_limiter, resourcedetection]
       exporters: [googlecloud]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter]
+      processors: [memory_limiter, resourcedetection]
       exporters: [googlecloud]

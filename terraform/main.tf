@@ -307,7 +307,27 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
 
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
-        value = "http://localhost:4318"
+        value = "http://localhost:4317"
+      }
+
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = "cyberpunk-ai"
+      }
+
+      env {
+        name  = "OTEL_PYTHON_LOG_CORRELATION"
+        value = "true"
+      }
+
+      env {
+        name  = "OTEL_PYTHON_LOG_LEVEL"
+        value = "debug"
+      }
+
+      env {
+        name  = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
+        value = "true"
       }
     }
 

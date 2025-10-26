@@ -18,6 +18,7 @@ on:
 env:
   GCP_REGION: us-central1
   SERVICE_NAME: discord-bot
+  COLLECTOR_IMAGE_NAME: otel-sidecar
   ARTIFACT_REGISTRY_REPO: discord-bot-repo
 
 jobs:
@@ -82,8 +83,11 @@ jobs:
       run: |
         echo "Deploying to Cloud Run Worker Pool..."
         gcloud beta run worker-pools deploy ${{ env.SERVICE_NAME }} \
-          --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
           --region=${{ env.GCP_REGION }} \
+          --container ${{ env.SERVICE_NAME }}-otel-collector \
+          --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.COLLECTOR_IMAGE_NAME }}:latest \
+          --container ${{ env.SERVICE_NAME }} \
+          --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \          
           --quiet
 
     - name: Deployment notification
