@@ -88,7 +88,7 @@ jobs:
           --container ${{ env.COLLECTOR_NAME }} \
           --image='${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.COLLECTOR_NAME }}:latest' \
           --container ${{ env.SERVICE_NAME }} \
-          --image='${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}'' \
+          --image='${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}' \
           --quiet
 
     - name: Deployment notification
