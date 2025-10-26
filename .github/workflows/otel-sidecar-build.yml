@@ -1,0 +1,65 @@
+name: Application CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'otel_sidecar/**'
+      - '.github/workflows/otel-sidecar-build.yml'      
+  workflow_dispatch:
+
+env:
+  GCP_REGION: us-central1
+  SERVICE_NAME: otel-sidecar
+  ARTIFACT_REGISTRY_REPO: discord-bot-repo
+
+jobs:
+  deploy:
+    defaults:
+      run:
+        working-directory: ./otel_sidecar
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v3
+      with:
+        install_components: 'beta'
+        cache: true
+
+    - name: Configure Docker for Artifact Registry
+      run: |
+        gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+        docker tag ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+                   ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:latest
+
+    - name: Push Docker image to Artifact Registry
+      run: |
+        docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:latest
+
+    - name: Deploy to Cloud Run Worker Pool
+      run: |
+        echo "Deploying to Cloud Run Worker Pool..."
+        gcloud beta run worker-pools deploy ${{ env.SERVICE_NAME }} \
+          --image=${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          --region=${{ env.GCP_REGION }} \
+          --quiet
+
+    - name: Deployment notification
+      run: |
+        echo "🚀 Worker pool deployed successfully!"
+        echo "Worker Pool: ${{ env.SERVICE_NAME }}"
+        echo "Region: ${{ env.GCP_REGION }}"
+        echo "Image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY_REPO }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"

@@ -13,6 +13,8 @@ dependencies = [
     "pypdf>=6.1.1",
     "python-dotenv>=1.1.1",
     "anthropic>=0.71.0",
+    "opentelemetry-distro>=0.59b0",
+    "opentelemetry-exporter-otlp>=1.38.0",
 ]
 
 [dependency-groups]
