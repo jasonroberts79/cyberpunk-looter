@@ -304,6 +304,24 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
           }
         }
       }
+
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = "http://localhost:4318"
+      }
+    }
+
+    # OpenTelemetry sidecar container
+    containers {
+      name  = "otel-sidecar"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/otel-sidecar:latest"
+
+      resources {
+        limits = {
+          cpu    = "0.5"
+          memory = "256Mi"
+        }
+      }
     }
   }
 
