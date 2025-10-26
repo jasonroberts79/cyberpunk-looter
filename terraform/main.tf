@@ -338,7 +338,7 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
 
       resources {
         limits = {
-          cpu    = "0.5"
+          cpu    = "1"
           memory = "256Mi"
         }
       }
