@@ -18,6 +18,8 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
+RUN uv run opentelemetry-bootstrap -a requirements | uv pip install --requirement -
+
 FROM python:3.11-slim-trixie
 
 ENV PYTHONUNBUFFERED=1
@@ -28,4 +30,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-ENTRYPOINT ["python3", "src/bot.py"]
+ENTRYPOINT ["opentelemetry-instrument", "python3", "src/bot.py"]
