@@ -216,7 +216,7 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
 
     containers {
       name = var.service_name
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/${var.service_name}:${var.image_tag}"      
 
       resources {
         limits = {
@@ -336,6 +336,30 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
     containers {
       name  = "otel-sidecar"
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo}/otel-sidecar:latest"
+
+      startup_probe {
+        initial_delay_seconds = 1
+        timeout_seconds       = 1
+        period_seconds        = 3
+        failure_threshold     = 3
+
+        http_get {
+          path = "/"
+          port = 13133
+        }
+      }
+
+      liveness_probe {
+        initial_delay_seconds = 5
+        timeout_seconds       = 1
+        period_seconds        = 10
+        failure_threshold     = 3
+
+        http_get {
+          path = "/"
+          port = 13133
+        }
+      }
 
       resources {
         limits = {
