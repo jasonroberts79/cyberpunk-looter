@@ -126,7 +126,7 @@ class LLMCLIHarness:
             response = self.llm_service.process_query(self.user_id, self.party_id, question)
             tool_calls = self.llm_service.extract_tool_calls(response)
             # Handle tool calls if present
-            if tool_calls is not None:
+            if tool_calls is not None and len(tool_calls) > 0:
                 self.handle_tool_calls(tool_calls)
                 return
 

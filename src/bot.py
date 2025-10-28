@@ -94,7 +94,7 @@ async def ask_question(ctx: Context, *, question: str):
         try:
             response = llm_service.process_query(user_id, party_id, question)
             tool_calls = llm_service.extract_tool_calls(response)
-            if tool_calls is not None:
+            if tool_calls is not None and len(tool_calls) > 0:
                 for tool_call in tool_calls:
                     tool_name = tool_call["name"]
                     tool_arguments = tool_call["arguments"]
