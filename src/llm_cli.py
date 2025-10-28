@@ -40,8 +40,7 @@ class LLMCLIHarness:
         print(f"{'=' * 70}{Colors.END}\n")
         print(f"{Colors.GREEN}Commands:{Colors.END}")
         print("  - Type your questions naturally")
-        print("  - Type 'help' for more commands")
-        print("  - Type 'exit' or 'quit' to quit\n")
+        print("  - Commands: 'reindex', 'help', 'exit', 'quit'\n")
 
     async def initialize(self):
         """Initialize all services."""
@@ -70,9 +69,7 @@ class LLMCLIHarness:
         print("    'Recommend gear for: assault rifle, cyberdeck, body armor'")
 
         print(f"\n  {Colors.BOLD}System Commands:{Colors.END}")
-        print("    party    - View current party members")
-        print("    clear    - Clear conversation history")
-        print("    memory   - View user interaction summary")
+        print("    reindex   - Force KB reindex")
         print("    help     - Show this help message")
         print("    exit     - Exit the CLI\n")
 
@@ -166,6 +163,9 @@ class LLMCLIHarness:
                 if user_input.lower() in ["exit", "quit"]:
                     print(f"\n{Colors.BLUE}Goodbye!{Colors.END}\n")
                     break
+
+                elif user_input.lower() == "reindex":
+                    await self.llm_service.initialize(True)
 
                 elif user_input.lower() == "help":
                     self.print_help()

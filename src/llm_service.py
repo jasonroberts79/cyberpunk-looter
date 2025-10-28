@@ -36,8 +36,8 @@ class LLMService:
         self.model_name = llm_model
         self.game_context = GAME_CONTEXT
 
-    async def initialize(self):
-        await self.graphrag_system.build_knowledge_graph()
+    async def initialize(self, force_reindex: bool = False):
+        await self.graphrag_system.build_knowledge_graph(force_rebuild=force_reindex)
 
     def process_query(self, user_id: str, party_id: str, question: str) -> Message:
         """

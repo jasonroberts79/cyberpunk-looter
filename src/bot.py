@@ -1,4 +1,5 @@
 import io
+import json
 import sys
 import traceback
 import discord
@@ -94,20 +95,24 @@ async def ask_question(ctx: Context, *, question: str):
             response = llm_service.process_query(user_id, party_id, question)
             tool_calls = llm_service.extract_tool_calls(response)
             if tool_calls is not None:
-                for msg in tool_calls:
-                    name = msg["name"]
-                    arguments = msg["arguments"]
-                    if not tool_system.is_tool_confirmation_required(name):
+                for tool_call in tool_calls:
+                    tool_name = tool_call["name"]
+                    tool_arguments = tool_call["arguments"]
+                    if not tool_system.is_tool_confirmation_required(tool_name):
                         # Execute the action directly
                         result_message = llm_service.execute_tool_action(
-                            name, arguments, user_id, party_id
+                            tool_name, tool_arguments, user_id, party_id
                         )
 
                         await ctx.send(result_message)
                         continue
 
+                    if isinstance(tool_arguments, str):
+                        parameters = json.loads(tool_arguments)
+                    else:
+                        parameters = tool_arguments
                     sent_message = await ctx.send(
-                        tool_system.generate_confirmation_message(name, arguments)
+                        tool_system.generate_confirmation_message(tool_name, parameters)
                     )
 
                     # Add reactions
@@ -118,8 +123,8 @@ async def ask_question(ctx: Context, *, question: str):
                         message_id=str(sent_message.id),
                         user_id=ctx.author.id.__str__(),
                         party_id=party_id,
-                        action=name,
-                        parameters=arguments,
+                        action=tool_name,
+                        parameters=parameters,
                         channel_id=str(ctx.channel.id),
                     )
                 return  # Exit after handling tool calls
