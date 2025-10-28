@@ -1,36 +1,51 @@
 graph TB
       %% Entry Point
-      bot[Bot<br/>bot.py]
+      bot[Bot<br/>discord.commands.Bot<br/>bot.py]
 
       %% Core Services
-      llm[LLMService<br/>llm_service.py]
-      agentic[AgenticHandler<br/>agentic_handler.py]
+      llm[LLMService<br/>llm_service.py<br/>+ process_query<br/>+ execute_tool_action<br/>+ execute_recommend_gear]
+
+      reactions[DiscordReactions<br/>bot_reactions.py<br/>+ handle_approval<br/>+ handle_rejection<br/>+ add_pending_confirmation]
 
       %% Data Layer
-      memory[MemorySystem<br/>memory_system.py]
-      graphrag[GraphRAGSystem<br/>graphrag_system.py]
-      storage[AppStorage<br/>app_storage.py]
+      memory[MemorySystem<br/>memory_system.py<br/>+ short_term_memory<br/>+ long_term_memory<br/>+ party_data]
+
+      graphrag[GraphRAGSystem<br/>graphrag_system.py<br/>+ build_knowledge_graph<br/>+ get_context_for_query]
+
+      storage[AppStorage<br/>app_storage.py<br/>+ writedata<br/>+ readdata]
+
+      %% Utility Modules
+      tools[tool_system<br/>module<br/>+ get_tool_definitions<br/>+ is_tool_confirmation_required]
+
+      prompts[prompt_library<br/>module<br/>+ create_main_system_prompt<br/>+ create_gear_recommendation_prompt]
+
+      config[app_config<br/>module<br/>+ get_config_value]
 
       %% External Dependencies
-      openai[OpenAI Client<br/>external]
-      neo4j[Neo4j<br/>external]
-      discord[Discord.py<br/>external]
+      claude[Anthropic Claude<br/>external<br/>Chat Completion + Tools]
+      openai[OpenAI<br/>external<br/>Embeddings]
+      neo4j[Neo4j<br/>external<br/>Graph DB + Vectors]
+      discord_lib[Discord.py<br/>external<br/>Bot Framework]
+      gcs[Google Cloud Storage<br/>external<br/>Blob Storage]
 
       %% Bot Dependencies
       bot --> llm
-      bot --> agentic
+      bot --> reactions
       bot --> memory
-      bot --> graphrag
-      bot --> openai
-      bot --> discord
+      bot --> tools
+      bot --> config
+      bot --> discord_lib
+
+      %% Reactions Dependencies
+      reactions --> llm
 
       %% LLM Service Dependencies
       llm --> graphrag
       llm --> memory
-      llm --> openai
-
-      %% Agentic Handler Dependencies
-      agentic -.optional.-> llm
+      llm --> claude
+      llm --> tools
+      llm --> prompts
+      llm --> config
 
       %% Memory System Dependencies
       memory --> storage
@@ -38,14 +53,21 @@ graph TB
       %% GraphRAG Dependencies
       graphrag --> neo4j
       graphrag --> openai
+      graphrag --> storage
+      graphrag --> config
+
+      %% Storage Dependencies
+      storage --> gcs
 
       %% Styling
       classDef entryPoint fill:#e1f5ff,stroke:#01579b,stroke-width:3px
       classDef coreService fill:#fff3e0,stroke:#e65100,stroke-width:2px
       classDef dataLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-      classDef external fill:#f1f8e9,stroke:#33691e,stroke-width:1px,stroke-dasharray: 5 5
+      classDef utilityModule fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+      classDef external fill:#fafafa,stroke:#616161,stroke-width:1px,stroke-dasharray: 5 5
 
       class bot entryPoint
-      class llm,agentic coreService
+      class llm,reactions coreService
       class memory,graphrag,storage dataLayer
-      class openai,neo4j,discord external
+      class tools,prompts,config utilityModule
+      class claude,openai,neo4j,discord_lib,gcs external

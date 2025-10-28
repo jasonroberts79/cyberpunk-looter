@@ -1,8 +1,8 @@
 graph TB
     subgraph "External Services"
         Discord[Discord Platform]
-        LLMAPI["OpenAI-Compatible API
-        Chat Completion"]
+        Claude["Anthropic Claude API
+        Chat Completion + Tools"]
         OpenAI["OpenAI API
         Embeddings"]
         Neo4j[("Neo4j Graph DB
@@ -12,95 +12,152 @@ graph TB
     subgraph "Discord Bot Application"
         Bot["bot.py
         Discord Bot
-        Command Handler"]
+        Command Handler
+        !ai command"]
 
-        subgraph "Core Systems"
+        BotReactions["bot_reactions.py
+        Tool Confirmation Flow
+        Approval/Rejection Handling"]
+
+        subgraph "Core Services"
+            LLM["llm_service.py
+            Anthropic SDK
+            Query Processing
+            Tool Execution"]
+
+            ToolSystem["tool_system.py
+            Tool Definitions
+            add_party_character
+            remove_party_character
+            view_party_members
+            recommend_gear"]
+
+            Prompts["prompt_library.py
+            System Prompts
+            Game Context"]
+        end
+
+        subgraph "Data Systems"
             GraphRAG["graphrag_system.py
             Document Ingestion
             Vector Search
             Context Retrieval"]
+
             Memory["memory_system.py
             Short-term Memory
-            Long-term Memory"]
+            Long-term Memory
+            User/Party Summaries"]
+
             Storage["app_storage.py
             File Metadata
-            Storage Abstraction"]
+            GCS Abstraction"]
+
+            Config["app_config.py
+            Environment Config"]
         end
 
         subgraph "Knowledge Base"
             KB["knowledge_base/
-            PDF & Markdown
-            Source Documents"]
+            Cyberpunk Red Corebook
+            PDF Documents"]
         end
     end
 
     subgraph "Deployment Infrastructure"
         subgraph "CI/CD Pipeline"
             GHA["GitHub Actions
-            Test + Build + Deploy"]
-            Docker["Docker Container
-            Python + uv"]
+            uv run pytest
+            uv run pyright
+            Build Images
+            Deploy"]
         end
 
         subgraph "Google Cloud Platform"
+            subgraph "Cloud Run Worker Pool"
+                MainContainer["Main Container
+                Python + uv
+                OpenTelemetry
+                Instrumentation"]
+
+                OTELSidecar["OTEL Sidecar
+                Collector
+                Export to GCP"]
+            end
+
             AR["Artifact Registry
-            Docker Repository"]
-            CloudRun["Cloud Run
-            Always-On Service
-            Min 1 Instance"]
+            Docker Repository
+            Main + Sidecar Images"]
+
+            GCS["Cloud Storage
+            Bot Memory Bucket
+            Versioned"]
+
             SM["Secret Manager
             Discord Token
             API Keys
             Neo4j Credentials"]
+
             TF["Terraform
             Infrastructure as Code"]
+
+            Observability["Cloud Trace/Logging
+            OpenTelemetry Data"]
         end
     end
 
     %% User Interactions
-    Discord -->|"!ask, !reindex
-    !memory, !clear"| Bot
-    Bot -->|Responses| Discord
+    Discord -->|"!ai question"| Bot
+    Bot -->|Responses & Confirmations| Discord
+    Discord -->|"👍 👎 Reactions"| BotReactions
 
-    %% Bot System Connections
-    Bot -->|Query with Context| GraphRAG
-    Bot -->|Store/Retrieve Memory| Memory
-    Bot -->|Generate Response| LLMAPI
+    %% Bot Flow
+    Bot -->|Delegate Query| LLM
+    Bot -->|Check Confirmations| BotReactions
+    BotReactions -->|Execute Approved Tools| LLM
+
+    %% LLM Service Connections
+    LLM -->|Get Context| GraphRAG
+    LLM -->|Store/Retrieve Memory| Memory
+    LLM -->|API Calls| Claude
+    LLM -->|Load Tool Definitions| ToolSystem
+    LLM -->|Format Prompts| Prompts
 
     %% GraphRAG Connections
-    GraphRAG -->|Load & Parse| KB
+    GraphRAG -->|Load & Parse PDFs| KB
     GraphRAG -->|Store Chunks + Vectors| Neo4j
-    GraphRAG -->|Vector Similarity Search| Neo4j
+    GraphRAG -->|Vector Search| Neo4j
     GraphRAG -->|Generate Embeddings| OpenAI
-    GraphRAG -->|Chat with Retrieved Context| LLMAPI
     GraphRAG -->|Track File Changes| Storage
 
     %% Memory System Connections
-    Memory -->|Persist User Data| Storage
+    Memory -->|Persist to GCS| Storage
+    Storage -->|Access Bucket| GCS
 
-    %% Storage Connections
-    Storage -->|"File Metadata
-    SHA256 Checksums"| Storage
+    %% Config
+    Config -->|Load Secrets| SM
 
     %% Deployment Flow
-    GHA -->|Run Tests
-        uv run pytest
-        Build Image| Docker
-    Docker -->|Push| AR
-    AR -->|Deploy| CloudRun
-    CloudRun -->|Fetch Secrets| SM
-    CloudRun -->|Run Container| Bot
-    TF -.->|Provision & Configure| CloudRun
+    GHA -->|Build Main Image| AR
+    GHA -->|Build OTEL Sidecar| AR
+    GHA -->|Deploy| MainContainer
+    MainContainer -->|Runs| Bot
+    MainContainer -->|OTLP Export| OTELSidecar
+    OTELSidecar -->|Export Traces/Logs/Metrics| Observability
+    MainContainer -.->|Same Pod| OTELSidecar
+    TF -.->|Provision & Configure| MainContainer
     TF -.->|Provision & Configure| AR
     TF -.->|Provision & Configure| SM
+    TF -.->|Provision & Configure| GCS
 
     %% Styling
     classDef external fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
     classDef core fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     classDef infra fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef storage fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef observability fill:#fce4ec,stroke:#c2185b,stroke-width:2px
 
-    class Discord,LLMAPI,OpenAI,Neo4j external
-    class Bot,GraphRAG,Memory core
-    class GHA,Docker,AR,CloudRun,SM,TF infra
-    class Storage,KB storage
+    class Discord,Claude,OpenAI,Neo4j external
+    class Bot,BotReactions,LLM,ToolSystem,Prompts,GraphRAG,Memory core
+    class GHA,AR,MainContainer,OTELSidecar,SM,TF,GCS infra
+    class Storage,KB,Config storage
+    class Observability observability

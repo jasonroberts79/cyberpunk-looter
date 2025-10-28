@@ -1,4 +1,7 @@
 # Project settings
+- The application files are in src/
+- The tests are in tests/
+- The IaC is in terraform/
 - Always use uv to manage dependencies and virtual environments
 - Don't use Makefiles
 - When writing code, always use the command 'uv run pyright' to do static type checking and run the tests via 'uv run pytest'
@@ -12,6 +15,8 @@
 - app_storage.py - this class is responsible for persistence for the application
 - graphrag_system.py - this class handles the retrieval augmented generation capabilities for the LLM
 - prompt_library.py - this module should define the prompts used by the LLM agent
+- app_config.py - a wrapper for loading configuration from envvars and validating their presence
+- llm_cli.py - for executing the LLM functionality via CLI
 
 # Modules
 - Use @.claude/RIPER-5.md

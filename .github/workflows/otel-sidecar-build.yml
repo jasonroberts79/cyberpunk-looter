@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'otel_sidecar/**'
-      - '.github/workflows/otel-sidecar-build.yml'      
+      - '.github/workflows/otel-sidecar-build.yml'
   workflow_dispatch:
 
 env:
