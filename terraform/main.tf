@@ -323,13 +323,23 @@ resource "google_cloud_run_v2_worker_pool" "discord_bot" {
 
       env {
         name  = "OTEL_PYTHON_LOG_LEVEL"
-        value = "debug"
+        value = "info"
       }
 
       env {
         name  = "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"
         value = "true"
       }
+
+      env {
+        name  = "OTEL_RESOURCE_ATTRIBUTES"
+        value = "gcp.project_id=composed-slice-475116-r9"
+      }
+    
+      env {
+          name  = "GOOGLE_CLOUD_QUOTA_PROJECT"
+          value = "composed-slice-475116-r9"
+        }
     }
 
     # OpenTelemetry sidecar container
