@@ -62,7 +62,7 @@ class LLMService:
         party_summary = self.memory_system.get_party_summary(party_id)
 
         input_messages = self.build_messages(question, user_id)
-
+        input_messages = [m for m in input_messages if m["content"] is not None]
         # Call OpenAI API
         response = self.claude.messages.create(
             max_tokens=20000,
@@ -75,7 +75,9 @@ class LLMService:
         )
 
         self.memory_system.add_to_short_term(user_id, "user", question)
-        self.memory_system.add_to_short_term(user_id, "assistant", self.get_answer(response))
+        answer = self.get_answer(response)
+        if(answer is not None):
+            self.memory_system.add_to_short_term(user_id, "assistant", answer)
 
         return response
 
