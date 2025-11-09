@@ -1,73 +1,73 @@
-graph TB
-      %% Entry Point
-      bot[Bot<br/>discord.commands.Bot<br/>bot.py]
-
-      %% Core Services
-      llm[LLMService<br/>llm_service.py<br/>+ process_query<br/>+ execute_tool_action<br/>+ execute_recommend_gear]
-
-      reactions[DiscordReactions<br/>bot_reactions.py<br/>+ handle_approval<br/>+ handle_rejection<br/>+ add_pending_confirmation]
-
-      %% Data Layer
-      memory[MemorySystem<br/>memory_system.py<br/>+ short_term_memory<br/>+ long_term_memory<br/>+ party_data]
-
-      graphrag[GraphRAGSystem<br/>graphrag_system.py<br/>+ build_knowledge_graph<br/>+ get_context_for_query]
-
-      storage[AppStorage<br/>app_storage.py<br/>+ writedata<br/>+ readdata]
-
-      %% Utility Modules
-      tools[tool_system<br/>module<br/>+ get_tool_definitions<br/>+ is_tool_confirmation_required]
-
-      prompts[prompt_library<br/>module<br/>+ create_main_system_prompt<br/>+ create_gear_recommendation_prompt]
-
-      config[app_config<br/>module<br/>+ get_config_value]
-
-      %% External Dependencies
-      claude[Anthropic Claude<br/>external<br/>Chat Completion + Tools]
-      openai[OpenAI<br/>external<br/>Embeddings]
-      neo4j[Neo4j<br/>external<br/>Graph DB + Vectors]
-      discord_lib[Discord.py<br/>external<br/>Bot Framework]
-      gcs[Google Cloud Storage<br/>external<br/>Blob Storage]
-
-      %% Bot Dependencies
-      bot --> llm
-      bot --> reactions
-      bot --> memory
-      bot --> tools
-      bot --> config
-      bot --> discord_lib
-
-      %% Reactions Dependencies
-      reactions --> llm
-
-      %% LLM Service Dependencies
-      llm --> graphrag
-      llm --> memory
-      llm --> claude
-      llm --> tools
-      llm --> prompts
-      llm --> config
-
-      %% Memory System Dependencies
-      memory --> storage
-
-      %% GraphRAG Dependencies
-      graphrag --> neo4j
-      graphrag --> openai
-      graphrag --> storage
-      graphrag --> config
-
-      %% Storage Dependencies
-      storage --> gcs
-
-      %% Styling
-      classDef entryPoint fill:#e1f5ff,stroke:#01579b,stroke-width:3px
-      classDef coreService fill:#fff3e0,stroke:#e65100,stroke-width:2px
-      classDef dataLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-      classDef utilityModule fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-      classDef external fill:#fafafa,stroke:#616161,stroke-width:1px,stroke-dasharray: 5 5
-
-      class bot entryPoint
-      class llm,reactions coreService
-      class memory,graphrag,storage dataLayer
-      class tools,prompts,config utilityModule
-      class claude,openai,neo4j,discord_lib,gcs external
+---
+config:
+  layout: fixed
+---
+flowchart TB
+ subgraph s1["Graph RAG"]
+        graphrag["GraphRAGSystem<br>graphrag_system.py<br>+ build_knowledge_graph<br>+ get_context_for_query"]
+        neo4j["Neo4j<br>external<br>Graph DB + Vectors"]
+        openai["OpenAI<br>external<br>Embeddings"]
+  end
+ subgraph s2["Storage"]
+        storage["AppStorage<br>app_storage.py<br>+ write_data<br>+ read_data"]
+        gcs["Google Cloud Storage<br>external<br>Blob Storage"]
+  end
+ subgraph s3["Conversation"]
+        conversation["ConversationService<br>conversation_service.py<br>+ process_query<br>+ initialize"]
+        claude["Anthropic Claude<br>external<br>Chat Completion + Tools"]
+        message_builder["MessageBuilder<br>message_builder.py<br>+ build_messages"]
+        prompts["prompt_library<br>module<br>+ create_main_system_prompt<br>+ create_gear_recommendation_prompt"]
+        party_repo["PartyRepository<br>party_repository.py<br>+ add_party_character<br>+ get_party_summary"]
+  end
+ subgraph s4["Memory"]
+        unified_memory["UnifiedMemorySystem<br>unified_memory_system.py<br>+ add_message<br>+ get_long_term_summary"]
+        conversation_mem["ConversationMemory<br>conversation_memory.py<br>+ add_message<br>+ get_messages<br>+ clear_messages"]
+        user_mem_repo["UserMemoryRepository<br>user_memory_repository.py<br>+ update_long_term<br>+ get_long_term_summary"]
+  end
+ subgraph s5["Discord Bot"]
+        bot["Bot<br>discord.commands.Bot<br>bot.py"]
+        discord_lib["Discord.py<br>external<br>Bot Framework"]
+        reactions["DiscordReactions<br>bot_reactions.py<br>+ handle_approval<br>+ handle_rejection<br>+ add_pending_confirmation"]
+  end
+ subgraph s6["Tools"]
+        tool_exec["ToolExecutionService<br>tool_execution_service.py<br>+ execute_tool<br>+ extract_tool_calls<br>+ requires_confirmation"]
+        tool_registry["ToolRegistry<br>tools/registry.py<br>+ register<br>+ execute_tool<br>+ get_tool_definitions"]
+        tool_handlers["Tool Handlers<br>tools/*.py"]
+  end
+    bot --> discord_lib & tool_exec & reactions & conversation
+    reactions --> tool_exec
+    conversation --> claude & graphrag & unified_memory & party_repo & message_builder & prompts
+    tool_exec --> tool_registry & unified_memory
+    unified_memory --> conversation_mem & user_mem_repo
+    user_mem_repo --> storage
+    party_repo --> storage
+    message_builder --> conversation_mem
+    graphrag --> neo4j & openai & storage
+    storage --> gcs
+    tool_registry --> tool_handlers
+    tool_handlers --> party_repo
+     graphrag:::dataLayer
+     neo4j:::external
+     openai:::external
+     storage:::dataLayer
+     gcs:::external
+     conversation:::coreService
+     claude:::external
+     message_builder:::memoryLayer
+     prompts:::utilityModule
+     party_repo:::memoryLayer
+     unified_memory:::memoryLayer
+     conversation_mem:::memoryLayer
+     user_mem_repo:::memoryLayer
+     bot:::entryPoint
+     discord_lib:::external
+     reactions:::coreService
+     tool_exec:::coreService
+     tool_registry:::utilityModule
+    classDef entryPoint fill:#e1f5ff,stroke:#01579b,stroke-width:3px
+    classDef diContainer fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef coreService fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef memoryLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef dataLayer fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
+    classDef utilityModule fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef external fill:#fafafa,stroke:#616161,stroke-width:1px,stroke-dasharray: 5 5

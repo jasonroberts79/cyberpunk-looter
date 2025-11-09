@@ -10,7 +10,7 @@ import discord
 from typing import Dict, Optional
 from models import PendingConfirmation
 from config import DiscordBotConfig
-from src.tool_execution_service import ToolExecutionService
+from tool_execution_service import ToolExecutionService
 
 
 class DiscordReactions:
@@ -98,21 +98,17 @@ class DiscordReactions:
         """
         # Handle both dict and dataclass for backward compatibility
         if isinstance(confirmation, dict):
-            action = confirmation["action"]
-            parameters = confirmation["parameters"]
+            action = confirmation["action"]            
             confirmation["processed"] = True
         else:
-            action = confirmation.action
-            parameters = confirmation.parameters
+            action = confirmation.action            
             confirmation.processed = True
 
         # Generate cancellation message based on action
-        if action == "add_party_character":
-            name = parameters.get("name", "Unknown")
-            cancel_msg = f"Cancelled adding **{name}** to your party."
-        elif action == "remove_party_character":
-            name = parameters.get("name", "Unknown")
-            cancel_msg = f"Cancelled removing **{name}** from your party."
+        if action == "add_party_character":            
+            cancel_msg = "Cancelled adding character to your party."
+        elif action == "remove_party_character":            
+            cancel_msg = "Cancelled removing character from your party."
         elif action == "view_party_members":
             cancel_msg = "Cancelled viewing party members."
         elif action == "recommend_gear":
@@ -132,7 +128,7 @@ class DiscordReactions:
         user_id: str,
         party_id: str,
         action: str,
-        parameters: Dict,
+        parameters: object,
         channel_id: Optional[str] = None,
     ) -> None:
         """

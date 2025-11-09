@@ -1,6 +1,6 @@
 """Tool handler for adding party characters."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 from interfaces import PartyRepository
@@ -54,11 +54,16 @@ class AddPartyCharacterTool(ToolHandler):
             },
         }
 
-    def generate_confirmation_message(self, arguments: Dict[str, Any]) -> str:
+    def generate_confirmation_message(self, input: object) -> str:
         """Generate a confirmation message for user approval."""
-        name = arguments.get("name", "Unknown")
-        role = arguments.get("role", "Unknown")
-        gear_prefs = arguments.get("gear_preferences", [])
+        parsed_input = self.parse_input(input)
+        if isinstance(parsed_input, ToolExecutionResult):
+            return "Tool call error"
+
+        
+        name = parsed_input["name"]
+        role = parsed_input["role"]
+        gear_prefs = parsed_input["gear_preferences"]
 
         gear_text = ", ".join(gear_prefs) if gear_prefs else "None"
 
@@ -70,28 +75,31 @@ I'll add **{name}** to your party:
 
 👍 Confirm  👎 Cancel"""
 
-    def validate_arguments(
+    def parse_input(
         self,
-        arguments: Dict[str, Any]
-    ) -> tuple[bool, str | None]:
+        input: object
+    ) -> dict[str, Any] | ToolExecutionResult:
         """Validate the tool arguments."""
-        name = arguments.get("name")
-        role = arguments.get("role")
+        if not isinstance(input, dict):
+            return ToolExecutionResult(success=False, message="Invalid input")
+
+        name = input["name"]
+        role = input["role"]
 
         if not name or not isinstance(name, str) or not name.strip():
-            return False, "Character name is required and must be a non-empty string"
+            return ToolExecutionResult(success=False, message="Invalid name")
 
         if not role or not isinstance(role, str) or not role.strip():
-            return False, "Character role is required and must be a non-empty string"
+            return ToolExecutionResult(success=False, message="Invalid role")
 
-        gear_prefs = arguments.get("gear_preferences")
+        gear_prefs = input["gear_preferences"]
         if gear_prefs is not None:
             if not isinstance(gear_prefs, list):
-                return False, "Gear preferences must be a list"
+                return ToolExecutionResult(success=False, message="Invalid gear list")
             if not all(isinstance(item, str) for item in gear_prefs):
-                return False, "All gear preferences must be strings"
+                return ToolExecutionResult(success=False, message="Invalid gear list item")
 
-        return True, None
+        return { "name": name, "role": role, "gear_preferences": gear_prefs }
 
     def execute(
         self,

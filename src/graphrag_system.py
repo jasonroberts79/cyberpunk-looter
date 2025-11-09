@@ -13,8 +13,8 @@ from neo4j_graphrag.llm import OpenAILLM
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
-from src.config import AppConfig
-from src.interfaces import Storage
+from config import AppConfig
+from interfaces import Storage
 
 class GraphRAGSystem:
     NO_DATA_MESSAGE = "No relevant information found in the knowledge base."

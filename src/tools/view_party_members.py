@@ -1,6 +1,6 @@
 """Tool handler for viewing party members."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 from interfaces import PartyRepository
@@ -36,6 +36,12 @@ class ViewPartyMembersTool(ToolHandler):
             "input_schema": {"type": "object", "properties": {}, "required": []},
         }
 
+    def parse_input(
+        self,
+        input: object
+    ) -> dict[str, Any]:
+        return {}
+        
     def execute(
         self,
         arguments: Dict[str, Any],

@@ -2,8 +2,8 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from collections import defaultdict
-from src.config import AppConfig
-from src.interfaces import Storage
+from config import AppConfig
+from interfaces import Storage
 
 class MemorySystem:
     def __init__(

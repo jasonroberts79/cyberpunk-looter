@@ -6,15 +6,14 @@ from the container to eliminate global state.
 """
 
 import io
-import json
-from sre_compile import isstring
 import sys
 import traceback
+from anthropic.types import ToolUseBlock
 import discord
+from sre_compile import isstring
 from discord.ext import commands
 from discord.ext.commands import Context
 from dotenv import load_dotenv
-from bot_reactions import DiscordReactions
 from container import Container
 
 load_dotenv()
@@ -96,49 +95,24 @@ async def on_reaction_add(reaction, user):
 async def ask_question(ctx: Context, *, question: str):
     """Handle AI interaction command."""
     user_id = str(ctx.author.id)
-    party_id = str(ctx.guild.id) if ctx.guild else user_id
+    party_id = str(ctx.guild.id) if ctx.guild else user_id    
 
-    # Get services from container
-    conversation_service = container.conversation_service
-    tool_execution_service = container.tool_execution_service
-    reactions_handler = container.reaction_handler
-
-    if not reactions_handler:
+    if not container.reaction_handler:
         await ctx.send("Bot is not fully initialized. Please try again in a moment.")
         return
 
     # Check and cleanup timeouts for this user
-    await reactions_handler.check_and_cleanup_timeouts(user_id, bot)
+    await container.reaction_handler.check_and_cleanup_timeouts(user_id, bot)
 
     async with ctx.typing():
         try:
-            # Process the query through the LLM
-            tool_definitions = tool_execution_service.get_tool_definitions()
-            response = conversation_service.process_query(
-                user_id, party_id, question, tool_definitions
-            )
-
-            # Extract and handle tool calls
-            tool_calls = tool_execution_service.extract_tool_calls(response)
-            if tool_calls is not None and len(tool_calls) > 0:
-                await _handle_tool_calls(ctx, tool_calls)
-                return  # Exit after handling tool calls
-
-            # Get the answer text from response
-            answer = _extract_answer(response)
-            if not answer:
-                await ctx.send("I couldn't generate a response.")
-                return
-
-            # Send the answer
-            print(f"Answer to user {user_id}: {answer}")
-            if len(answer) > 2000:
-                # Answer too long, send as file
-                file = io.BytesIO(answer.encode("utf-8"))
-                file.seek(0)
-                await ctx.send(file=discord.File(file, filename="answer.txt"))
-            else:
-                await ctx.send(answer)
+            # Process the query through the LLM            
+            content = container.conversation_service.process_query(user_id, party_id, question)
+            for block in content:
+                if block.type == "text":                
+                    await _send_reply(ctx, block.text)
+                elif block.type == "tool_use":            
+                    await _handle_tool_calls(ctx, block)
 
         except Exception as e:
             error_msg = str(e)
@@ -176,55 +150,40 @@ async def clear_memory(ctx):
 
 
 # Helper functions
-
-async def _handle_tool_calls(ctx: Context, tool_calls: list) -> None:
+async def _handle_tool_calls(ctx: Context, tool_call: ToolUseBlock) -> None:
     user_id = str(ctx.author.id)
     party_id = str(ctx.guild.id) if ctx.guild else user_id
-    tool_execution_service = container.tool_execution_service
-    reactions_handler = container.reaction_handler
-    for tool_call in tool_calls:
-        tool_name = tool_call["name"]
-        tool_arguments = tool_call["arguments"]
-
-        # Check if tool requires confirmation
-        if not tool_execution_service.requires_confirmation(tool_name):
-            # Execute the action directly
-            if isinstance(tool_arguments, str):
-                parameters = json.loads(tool_arguments)
-            else:
-                parameters = tool_arguments
-
-            result_message = tool_execution_service.execute_tool(
-                tool_name, parameters, user_id, party_id
-            )
-            await ctx.send(result_message)
-            continue
-
-        # Tool requires confirmation
-        if isinstance(tool_arguments, str):
-            parameters = json.loads(tool_arguments)
-        else:
-            parameters = tool_arguments
-
-        # Send confirmation message
-        confirmation_msg = tool_execution_service.generate_confirmation_message(
-            tool_name, parameters
+    if not container.tool_execution_service.requires_confirmation(tool_call.name):            
+        result_message = container.tool_execution_service.execute_tool(
+            tool_call.name, tool_call.input, user_id, party_id
         )
-        sent_message = await ctx.send(confirmation_msg)
+        await _send_reply(ctx, result_message)        
+    else:        
+        msg = container.tool_registry.generate_confirmation_message(tool_call.name, tool_call.input)
+        sent_message = await _send_reply(ctx, msg)        
 
         # Add reaction buttons
         await sent_message.add_reaction("👍")
         await sent_message.add_reaction("👎")
 
         # Store pending confirmation
-        reactions_handler.add_pending_confirmation(
+        container.reaction_handler.add_pending_confirmation(
             message_id=str(sent_message.id),
             user_id=str(ctx.author.id),
             party_id=party_id,
-            action=tool_name,
-            parameters=parameters,
+            action=tool_call.name,
+            parameters=tool_call.input,
             channel_id=str(ctx.channel.id),
         )
+async def _send_reply(ctx:Context, answer):
+    print(f"Answer to user {ctx.author.id}: {answer}")
+    if len(answer) > 2000:
+        # Answer too long, send as file
+        file = io.BytesIO(answer.encode("utf-8"))
+        file.seek(0)
+        return await ctx.send(file=discord.File(file, filename="answer.txt"))
+    else:
+        return await ctx.send(answer)
 
 def _extract_answer(response) -> str | None:
     """

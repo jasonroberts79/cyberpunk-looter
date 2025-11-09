@@ -5,11 +5,7 @@ This module provides a clean interface for executing tools using
 the registry pattern, replacing the previous if/elif chain approach.
 """
 
-from typing import Dict, Any, Optional
-import json
-from anthropic.types import Message
 from tools.registry import ToolRegistry
-from tools.base import ToolExecutionResult
 from interfaces import MemoryProvider
 
 
@@ -39,7 +35,7 @@ class ToolExecutionService:
     def execute_tool(
         self,
         tool_name: str,
-        arguments: Dict[str, Any],
+        arguments: object,
         user_id: str,
         party_id: str
     ) -> str:
@@ -62,7 +58,7 @@ class ToolExecutionService:
         """
         result = self.registry.execute_tool(
             tool_name=tool_name,
-            arguments=arguments,
+            input=arguments,
             user_id=user_id,
             party_id=party_id
         )
@@ -88,62 +84,7 @@ class ToolExecutionService:
             True if confirmation is required, False otherwise
         """
         return self.registry.requires_confirmation(tool_name)
-
-    def generate_confirmation_message(
-        self,
-        tool_name: str,
-        arguments: Dict[str, Any]
-    ) -> str:
-        """
-        Generate a confirmation message for a tool.
-
-        Args:
-            tool_name: The name of the tool
-            arguments: The tool arguments
-
-        Returns:
-            A formatted confirmation message
-        """
-        return self.registry.generate_confirmation_message(tool_name, arguments)
-
-    def extract_tool_calls(
-        self,
-        response: Message
-    ) -> Optional[list[Dict[str, Any]]]:
-        """
-        Extract tool calls from an LLM API response.
-
-        Args:
-            response: The API response object
-
-        Returns:
-            List of tool call dictionaries, or None if no tool calls found
-        """
-        try:
-            # Check for Anthropic content blocks format
-            if hasattr(response, "content") and response.content:
-                tool_calls = []
-
-                for block in response.content:
-                    if hasattr(block, "type") and block.type == "tool_use":
-                        # Anthropic format
-                        tool_calls.append(
-                            {
-                                "name": block.name,
-                                "arguments": json.dumps(block.input)
-                                if isinstance(block.input, dict)
-                                else block.input,
-                            }
-                        )
-
-                return tool_calls if tool_calls else None
-
-            return None
-        except (AttributeError, IndexError) as e:
-            # Log the error if we have a logger
-            print(f"Tool call extraction error: {e}")
-            return None
-
+            
     def has_tool(self, tool_name: str) -> bool:
         """
         Check if a tool is registered.

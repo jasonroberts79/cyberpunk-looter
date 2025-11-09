@@ -2,15 +2,12 @@
 """Command-line test harness for the LLM service."""
 
 import asyncio
-import json
 import os
 from pprint import pprint
+from anthropic.types import ToolUseBlock
 from dotenv import load_dotenv, dotenv_values
 
 from container import Container
-from memory_system import MemorySystem
-import tool_system
-
 
 # ANSI color codes for terminal output
 class Colors:
@@ -29,6 +26,7 @@ class LLMCLIHarness:
     def __init__(self):
         """Initialize the test harness."""
         load_dotenv()
+        pprint(dotenv_values(".env"))
         self.container = Container()
         self.user_id = "Jason(CLI)"
         self.party_id = os.getenv("RED_PARTY_ID", "default_cli_party")
@@ -43,14 +41,9 @@ class LLMCLIHarness:
         print("  - Commands: 'reindex', 'help', 'exit', 'quit'\n")
 
     async def initialize(self):
-        """Initialize all services."""
-        pprint(dotenv_values(".env"))
-
-        await self.container.initialize()
-        # Initialize memory system
-        print(f"{Colors.YELLOW}  → Initializing memory system...{Colors.END}")
+        """Initialize all services."""        
+        await self.container.initialize()        
         self.container.unified_memory_system.conversation_memory.clear_messages(self.user_id)        
-        
         print(f"{Colors.GREEN}✓ All services initialized successfully!{Colors.END}\n")
 
     def print_help(self):
@@ -67,28 +60,17 @@ class LLMCLIHarness:
         print("    help     - Show this help message")
         print("    exit     - Exit the CLI\n")
 
-    async def handle_tool_calls(self, tool_calls: list) -> bool:
-        for tool_call in tool_calls:
-            tool_name = tool_call["name"]
-            tool_arguments = tool_call["arguments"]
-            if not tool_system.is_tool_confirmation_required(tool_name):
-                # Execute the action directly
-                result_message = self.container.tool_execution_service.execute_tool(
-                    tool_name, tool_arguments, self.user_id, self.party_id
-                )
+    async def handle_tool_calls(self, tool_call: ToolUseBlock) -> bool:
+        if not self.container.tool_execution_service.requires_confirmation(tool_call.name):            
+            result_message = self.container.tool_execution_service.execute_tool(
+                tool_call.name, tool_call.input, self.user_id, self.party_id
+            )
 
-                print(f"\n{Colors.GREEN}{result_message}{Colors.END}\n")
-                continue
-            if isinstance(tool_arguments, str):
-                parameters = json.loads(tool_arguments)
-            else:
-                parameters = tool_arguments
-
-            # Generate confirmation message
-            confirmation_msg = tool_system.generate_confirmation_message(tool_name, parameters)
-
+            print(f"\n{Colors.GREEN}{result_message}{Colors.END}\n")
+        else:
             # Print confirmation request
-            print(f"\n{Colors.YELLOW}{confirmation_msg}{Colors.END}\n")
+            msg = self.container.tool_registry.generate_confirmation_message(tool_call.name, tool_call.input)
+            print(f"\n{Colors.YELLOW}{msg}{Colors.END}\n")
 
             # Get user confirmation
             while True:
@@ -96,7 +78,7 @@ class LLMCLIHarness:
                 if response in ["y", "yes"]:
                     # Execute the action
                     result_message = self.container.tool_execution_service.execute_tool(
-                        tool_name, parameters, self.user_id, self.party_id
+                        tool_call.name, tool_call.input, self.user_id, self.party_id
                     )
 
                     print(f"\n{Colors.GREEN}{result_message}{Colors.END}\n")
@@ -111,23 +93,14 @@ class LLMCLIHarness:
 
     async def process_query(self, question: str):
         try:
-            print(f"{Colors.YELLOW}Processing...{Colors.END}")
-            response = self.container.conversation_service.process_query(self.user_id, self.party_id, question)            
-            tool_calls = self.container.tool_execution_service.extract_tool_calls(response)
-            # Handle tool calls if present
-            if tool_calls is not None and len(tool_calls) > 0:
-                await self.handle_tool_calls(tool_calls)
-                return
-
-            # Get the answer text
-            answer = self.container.conversation_service._extract_answer(response)
-            if not answer:
-                answer = "I couldn't generate a response."
-
-            # Print the response
-            print(f"\n{Colors.BOLD}{Colors.BLUE}Assistant:{Colors.END}")
-            print(f"{answer}\n")
-
+            print(f"{Colors.YELLOW}Processing...{Colors.END}")            
+            content = self.container.conversation_service.process_query(self.user_id, self.party_id, question)
+            for block in content:
+                if block.type == "text":                
+                    print(f"\n{Colors.BOLD}{Colors.BLUE}Assistant:{Colors.END}")
+                    print(f"{block.text}\n")
+                elif block.type == "tool_use":            
+                    await self.handle_tool_calls(block)
         except Exception as e:
             print(f"\n{Colors.RED}Error: {str(e)}{Colors.END}\n")
             import traceback

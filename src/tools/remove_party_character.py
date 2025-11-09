@@ -1,6 +1,6 @@
 """Tool handler for removing party characters."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 from interfaces import PartyRepository
@@ -45,9 +45,13 @@ class RemovePartyCharacterTool(ToolHandler):
             },
         }
 
-    def generate_confirmation_message(self, arguments: Dict[str, Any]) -> str:
+    def generate_confirmation_message(self, input: object) -> str:
         """Generate a confirmation message for user approval."""
-        name = arguments.get("name", "Unknown")
+        parsed_input = self.parse_input(input)
+        if isinstance(parsed_input, ToolExecutionResult):
+            return "Tool call error"
+
+        name = parsed_input["name"]
 
         return f"""📋 **Confirmation Required**
 
@@ -55,17 +59,20 @@ I'll remove **{name}** from your party.
 
 👍 Confirm  👎 Cancel"""
 
-    def validate_arguments(
+    def parse_input(
         self,
-        arguments: Dict[str, Any]
-    ) -> tuple[bool, str | None]:
+        input: object
+    ) -> dict[str, Any] | ToolExecutionResult:
         """Validate the tool arguments."""
-        name = arguments.get("name")
+        if not isinstance(input, dict):
+            return ToolExecutionResult(success=False, message="Invalid input")
+
+        name = input["name"]
 
         if not name or not isinstance(name, str) or not name.strip():
-            return False, "Character name is required and must be a non-empty string"
+            return ToolExecutionResult(success=False, message="Invalid name")
 
-        return True, None
+        return { "name": name }
 
     def execute(
         self,

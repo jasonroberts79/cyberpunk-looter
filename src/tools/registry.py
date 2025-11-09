@@ -5,7 +5,7 @@ This module implements the registry pattern for tool management,
 providing a centralized place to register and retrieve tools.
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 
@@ -100,7 +100,7 @@ class ToolRegistry:
     def generate_confirmation_message(
         self,
         tool_name: str,
-        arguments: Dict
+        input: object
     ) -> str:
         """
         Generate a confirmation message for a tool.
@@ -114,13 +114,13 @@ class ToolRegistry:
         """
         handler = self.get_handler(tool_name)
         if handler:
-            return handler.generate_confirmation_message(arguments)
+            return handler.generate_confirmation_message(input)
         return f"Confirm execution of {tool_name}?"
 
     def execute_tool(
         self,
         tool_name: str,
-        arguments: Dict,
+        input: object,
         user_id: str,
         party_id: str
     ) -> ToolExecutionResult:
@@ -145,18 +145,13 @@ class ToolRegistry:
                 should_update_memory=False
             )
 
-        # Validate arguments
-        is_valid, error_message = handler.validate_arguments(arguments)
-        if not is_valid:
-            return ToolExecutionResult(
-                success=False,
-                message=f"Invalid arguments: {error_message}",
-                should_update_memory=False
-            )
+        parsed_input = handler.parse_input(input)
+        if(isinstance(parsed_input, ToolExecutionResult)):        
+            return parsed_input        
 
         # Execute the tool
         try:
-            return handler.execute(arguments, user_id, party_id)
+            return handler.execute(parsed_input, user_id, party_id) 
         except Exception as e:
             return ToolExecutionResult(
                 success=False,

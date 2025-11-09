@@ -322,8 +322,7 @@ class TestHandleRejection:
         await reactions.handle_rejection(mock_message, confirmation)
 
         mock_message.reply.assert_called_once()
-        call_args = mock_message.reply.call_args[0][0]
-        assert "V" in call_args
+        call_args = mock_message.reply.call_args[0][0]        
         assert "Cancelled" in call_args
         assert confirmation["processed"] is True
         assert "123" not in reactions.pending_confirmations
@@ -354,8 +353,7 @@ class TestHandleRejection:
 
         await reactions.handle_rejection(mock_message, confirmation)
 
-        call_args = mock_message.reply.call_args[0][0]
-        assert "Jackie" in call_args
+        call_args = mock_message.reply.call_args[0][0]        
         assert "Cancelled" in call_args
 
     @pytest.mark.asyncio

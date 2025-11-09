@@ -6,7 +6,8 @@ implementing the Strategy pattern for tool execution.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+import json
+from typing import Dict, Any, Optional, cast
 from anthropic.types import ToolParam
 from pydantic import BaseModel
 
@@ -88,7 +89,7 @@ class ToolHandler(ABC):
 
     def generate_confirmation_message(
         self,
-        arguments: Dict[str, Any]
+        input: object
     ) -> str:
         """
         Generate a confirmation message for user approval.
@@ -103,23 +104,12 @@ class ToolHandler(ABC):
         """
         return f"Confirm execution of {self.name}?"
 
-    def validate_arguments(
+    @abstractmethod
+    def parse_input(
         self,
-        arguments: Dict[str, Any]
-    ) -> tuple[bool, str | None]:
-        """
-        Validate tool arguments before execution.
-
-        Override this method to add custom validation logic.
-
-        Args:
-            arguments: The arguments to validate
-
-        Returns:
-            Tuple of (is_valid, error_message)
-            error_message is None if valid
-        """
-        return True, None
+        input: object
+    ) -> dict[str, Any] | ToolExecutionResult:
+        ...
 
 
 class ContextRetrievingToolHandler(ToolHandler):

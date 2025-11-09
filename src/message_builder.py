@@ -5,7 +5,7 @@ This module is responsible for building message arrays from conversation
 history and new user input, ready to send to the LLM API.
 """
 
-from typing import List, Dict, Any
+from typing import List, Any
 from anthropic.types import MessageParam
 from config import MemoryConfig
 

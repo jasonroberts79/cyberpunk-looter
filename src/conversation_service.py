@@ -5,14 +5,19 @@ This module provides a clean interface for processing user queries
 through the LLM, managing context, memory, and tool definitions.
 """
 
-from typing import List, Optional, Any
+import json
+from typing import List
 from anthropic import Anthropic
-from anthropic.types import Message, MessageParam
+from anthropic.types import ContentBlock
 from message_builder import MessageBuilder
 from prompt_library import create_main_system_prompt
 from config import LLMConfig
+from bot_reactions import DiscordReactions
 from exceptions import LLMServiceError
-
+from graphrag_system import GraphRAGSystem
+from interfaces import PartyRepository
+from tool_execution_service import ToolExecutionService
+from unified_memory_system import UnifiedMemorySystem
 
 class ConversationService:
     """
@@ -25,10 +30,11 @@ class ConversationService:
     def __init__(
         self,
         anthropic_client: Anthropic,
-        context_provider: Any,  # GraphRAGSystem
-        memory_provider: Any,  # UnifiedMemorySystem
-        party_repository: Any,  # PartyRepository
+        context_provider: GraphRAGSystem,
+        memory_provider: UnifiedMemorySystem,
+        party_repository: PartyRepository,
         message_builder: MessageBuilder,
+        tool_execution_service: ToolExecutionService,        
         config: LLMConfig = LLMConfig()
     ) -> None:
         """
@@ -48,15 +54,15 @@ class ConversationService:
         self.memory_provider = memory_provider
         self.party_repository = party_repository
         self.message_builder = message_builder
+        self.tool_execution_service = tool_execution_service        
         self.config = config
 
     def process_query(
         self,
         user_id: str,
         party_id: str,
-        question: str,
-        tool_definitions: Optional[List] = None
-    ) -> Message:
+        question: str
+    ) -> List[ContentBlock]:
         """
         Process a user query and return the LLM response.
 
@@ -80,8 +86,9 @@ class ConversationService:
         Raises:
             LLMServiceError: If the LLM API call fails
         """
+        
         # Update user interaction count
-        self.memory_provider.update_long_term(user_id, "interaction", "")
+        self.memory_provider.update_long_term(user_id, "interaction", "") # TODO: fix needing to pass an empty string
 
         # Get context from GraphRAG
         context = self.context_provider.get_context_for_query(
@@ -101,6 +108,7 @@ class ConversationService:
 
         try:
             # Call the LLM API
+            tool_definitions = self.tool_execution_service.get_tool_definitions()
             if tool_definitions:
                 response = self.client.messages.create(
                     max_tokens=self.config.max_tokens,
@@ -121,32 +129,15 @@ class ConversationService:
                 )
 
             # Store the interaction in memory
-            self.memory_provider.add_message(user_id, "user", question)
+            self.memory_provider.add_message(user_id, "user", json.dumps(messages[-1]))
+            
+            for block in response.content:
+                self.memory_provider.add_message(user_id, "assistant", json.dumps(block))
 
-            # Extract and store the answer if present
-            answer = self._extract_answer(response)
-            if answer is not None:
-                self.memory_provider.add_message(user_id, "assistant", answer)
-
-            return response
+            return response.content
 
         except Exception as e:
-            raise LLMServiceError(f"Failed to process query: {e}") from e
-
-    def _extract_answer(self, response: Message) -> Optional[str]:
-        """
-        Extract text answer from LLM response.
-
-        Args:
-            response: The LLM response message
-
-        Returns:
-            The text answer, or None if no text content found
-        """
-        text_blocks = [block for block in response.content if block.type == "text"]
-        if text_blocks:
-            return text_blocks[-1].text
-        return None
+            raise LLMServiceError(f"Failed to process query: {e}") from e    
 
     async def initialize(self, force_reindex: bool = False) -> None:
         """

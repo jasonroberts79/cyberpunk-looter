@@ -7,6 +7,8 @@ and dictionaries throughout the codebase, improving type safety and clarity.
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from anthropic.types import ToolUseBlock
+from anthropic.types.message import Message
 from pydantic import BaseModel, Field
 
 class ConversationMessage(BaseModel):
@@ -41,7 +43,7 @@ class PendingConfirmation(BaseModel):
     action: str
     """The name of the tool action to be executed."""
 
-    parameters: Dict[str, Any]
+    parameters: object
     """The parameters for the tool action."""
 
     timestamp: float
@@ -237,3 +239,10 @@ class PartyData(BaseModel):
             for char_data in data.get("characters", [])
         ]
         return cls(party_id=party_id, characters=characters)
+
+class ToolRequest:
+    def __init__(self, answer: str, tool_name: str, tool_arguments: Dict[str, Any], confirmation_message: Optional[str] = None):
+        self.answer = answer
+        self.confirmation_message = confirmation_message        
+        self.arguments = tool_arguments
+        self.name = tool_name

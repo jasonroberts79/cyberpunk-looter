@@ -139,5 +139,3 @@ class AppConfig:
                 f"Required environment variable '{key}' is missing or empty"
             )
         return value.strip()
-# Default configuration instance for convenience
-DEFAULT_CONFIG = AppConfig()

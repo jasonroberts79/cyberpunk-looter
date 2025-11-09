@@ -212,7 +212,6 @@ class ToolExecutor(Protocol):
         """
         ...
 
-
 class LLMClient(Protocol):
     """Abstract interface for LLM interactions."""
 

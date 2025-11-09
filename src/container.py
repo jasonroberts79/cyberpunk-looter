@@ -172,6 +172,7 @@ class Container:
                 memory_provider=self.unified_memory_system,
                 party_repository=self.party_repository,
                 message_builder=self.message_builder,
+                tool_execution_service=self.tool_execution_service,
                 config=self.config.llm
             )
         return self._conversation_service

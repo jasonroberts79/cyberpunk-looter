@@ -1,7 +1,11 @@
 """Tool handler for gear recommendations."""
 
-from typing import Dict, Any, List
-from anthropic.types import ToolParam, Message
+from typing import Dict, Any, List, Optional
+from anthropic import Anthropic
+from anthropic.types import MessageParam, ToolParam, Message
+from graphrag_system import GraphRAGSystem
+from interfaces import PartyRepository
+from unified_memory_system import UnifiedMemorySystem
 from tools.base import ToolHandler, ToolExecutionResult
 from prompt_library import (
     create_gear_recommendation_system_prompt,
@@ -20,10 +24,10 @@ class RecommendGearTool(ToolHandler):
 
     def __init__(
         self,
-        party_repository: Any,  # PartyRepository
-        context_provider: Any,  # GraphRAGSystem
-        memory_provider: Any,  # UnifiedMemorySystem
-        llm_client: Any,  # Anthropic
+        party_repository: PartyRepository,
+        context_provider: GraphRAGSystem,
+        memory_provider: UnifiedMemorySystem,
+        llm_client: Anthropic,
         config: LLMConfig = LLMConfig()
     ) -> None:
         """
@@ -74,24 +78,27 @@ class RecommendGearTool(ToolHandler):
             },
         }
 
-    def validate_arguments(
+    def parse_input(
         self,
-        arguments: Dict[str, Any]
-    ) -> tuple[bool, str | None]:
+        input: object
+    ) -> dict[str, Any] | ToolExecutionResult:
         """Validate the tool arguments."""
-        loot_desc = arguments.get("loot_description")
+        if not isinstance(input, dict):
+            return ToolExecutionResult(success=False, message="Invalid input")
+
+        loot_desc = input["loot_description"]
 
         if not loot_desc or not isinstance(loot_desc, str) or not loot_desc.strip():
-            return False, "Loot description is required and must be a non-empty string"
+            return ToolExecutionResult(success=False, message="Invalid loot description")
 
-        excluded = arguments.get("excluded_characters")
+        excluded = input["excluded_characters"]
         if excluded is not None:
             if not isinstance(excluded, list):
-                return False, "Excluded characters must be a list"
+                return ToolExecutionResult(success=False, message="Invalid exclusion list")
             if not all(isinstance(item, str) for item in excluded):
-                return False, "All excluded character names must be strings"
+                return ToolExecutionResult(success=False, message="Invalid exclusion list item")
 
-        return True, None
+        return { "loot_description": loot_desc, "excluded_characters": excluded }
 
     def execute(
         self,
@@ -214,19 +221,16 @@ class RecommendGearTool(ToolHandler):
             party_context += "\n"
         return party_context
 
-    def _build_messages(self, user_prompt: str, user_id: str) -> List[Dict[str, str]]:
+    def _build_messages(self, user_prompt: str, user_id: str) -> List[MessageParam]:
         """Build message array from conversation history."""
         short_term_context = self.memory_provider.get_messages(user_id)
-        messages = []
+        messages : List[MessageParam] = []
 
         if short_term_context:
-            messages = [
-                {"role": m["role"], "content": m["content"]}
-                for m in short_term_context
-                if m.get("content") is not None
-            ]
+            messages = [MessageParam(role= m["role"], content= m["content"]) for m in short_term_context if m["content"] is not None and m["role"] == "user" or m["role"] == "assistant"]
+            
 
-        messages.append({"role": "user", "content": user_prompt})
+        messages.append(MessageParam(role= "user", content= user_prompt))
         return messages
 
     def _extract_answer(self, response: Message) -> str | None:
