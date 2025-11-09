@@ -1,14 +1,16 @@
 import pytest
 from unittest.mock import Mock, patch
+from src.config import AppConfig
+from src.interfaces import Storage
 from src.memory_system import MemorySystem
 
 
 @pytest.fixture
 def mock_storage():
     """Mock AppStorage for testing"""
-    with patch("src.memory_system.AppStorage") as mock:
+    with patch("src.interfaces.Storage") as mock:
         storage_instance = Mock()
-        storage_instance.readdata.return_value = None
+        storage_instance.read_data.return_value = None
         mock.return_value = storage_instance
         yield storage_instance
 
@@ -16,18 +18,18 @@ def mock_storage():
 @pytest.fixture
 def memory_system(mock_storage):
     """Create a MemorySystem instance for testing"""
-    return MemorySystem()
+    return MemorySystem(mock_storage, AppConfig())
 
 
-def test_memory_system_initialization(mock_storage):
+def test_memory_system_initialization(memory_system, mock_storage):
     """Test that memory system initializes correctly"""
-    memory_system = MemorySystem()
+    
     assert memory_system.long_term_memory == {}
     assert memory_system.party_data == {}
     # Should be called twice: once for long_term_memory.json and once for party_data.json
-    assert mock_storage.readdata.call_count == 2
-    mock_storage.readdata.assert_any_call("long_term_memory.json")
-    mock_storage.readdata.assert_any_call("party_data.json")
+    assert mock_storage.read_data.call_count == 2
+    mock_storage.read_data.assert_any_call("long_term_memory.json")
+    mock_storage.read_data.assert_any_call("party_data.json")
 
 
 def test_add_character(memory_system, mock_storage):
@@ -50,7 +52,7 @@ def test_add_character(memory_system, mock_storage):
     assert char["name"] == "Tank1"
     assert char["role"] == "Tank"
     assert char["gear_preferences"] == ["Heavy Armor", "Shields"]
-    mock_storage.writedata.assert_called()
+    mock_storage.write_data.assert_called()
 
 
 def test_update_character(memory_system, mock_storage):

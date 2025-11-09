@@ -10,6 +10,7 @@ import discord
 from typing import Dict, Optional
 from models import PendingConfirmation
 from config import DiscordBotConfig
+from src.tool_execution_service import ToolExecutionService
 
 
 class DiscordReactions:
@@ -22,7 +23,7 @@ class DiscordReactions:
 
     def __init__(
         self,
-        tool_execution_service,  # ToolExecutionService
+        tool_execution_service: ToolExecutionService,
         config: DiscordBotConfig = DiscordBotConfig()
     ) -> None:
         """

@@ -41,8 +41,8 @@ def mock_llm():
 def mock_storage():
     """Provide a mocked AppStorage instance."""
     mock_store = Mock()
-    mock_store.readdata = Mock(return_value=None)
-    mock_store.writedata = Mock()
+    mock_store.read_data = Mock(return_value=None)
+    mock_store.write_data = Mock()
     return mock_store
 
 

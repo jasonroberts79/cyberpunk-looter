@@ -7,7 +7,7 @@ import os
 from pprint import pprint
 from dotenv import load_dotenv, dotenv_values
 
-from llm_service import LLMService
+from container import Container
 from memory_system import MemorySystem
 import tool_system
 
@@ -29,7 +29,7 @@ class LLMCLIHarness:
     def __init__(self):
         """Initialize the test harness."""
         load_dotenv()
-
+        self.container = Container()
         self.user_id = "Jason(CLI)"
         self.party_id = os.getenv("RED_PARTY_ID", "default_cli_party")
 
@@ -42,21 +42,15 @@ class LLMCLIHarness:
         print("  - Type your questions naturally")
         print("  - Commands: 'reindex', 'help', 'exit', 'quit'\n")
 
-    def initialize(self):
+    async def initialize(self):
         """Initialize all services."""
         pprint(dotenv_values(".env"))
 
-        print(f"{Colors.YELLOW}Initializing services...{Colors.END}")
-        print(f"{Colors.YELLOW}  → Building knowledge graph...{Colors.END}")
-
+        await self.container.initialize()
         # Initialize memory system
         print(f"{Colors.YELLOW}  → Initializing memory system...{Colors.END}")
-        self.memory_system = MemorySystem()
-        self.memory_system.clear_short_term(self.user_id)
-
-        # Initialize LLM service
-        print(f"{Colors.YELLOW}  → Initializing LLM service...{Colors.END}")
-        self.llm_service = LLMService(self.memory_system)
+        self.container.unified_memory_system.conversation_memory.clear_messages(self.user_id)        
+        
         print(f"{Colors.GREEN}✓ All services initialized successfully!{Colors.END}\n")
 
     def print_help(self):
@@ -79,7 +73,7 @@ class LLMCLIHarness:
             tool_arguments = tool_call["arguments"]
             if not tool_system.is_tool_confirmation_required(tool_name):
                 # Execute the action directly
-                result_message = self.llm_service.execute_tool_action(
+                result_message = self.container.tool_execution_service.execute_tool(
                     tool_name, tool_arguments, self.user_id, self.party_id
                 )
 
@@ -101,7 +95,7 @@ class LLMCLIHarness:
                 response = (await asyncio.to_thread(input, f"{Colors.BOLD}Confirm? (y/n): {Colors.END}")).strip().lower()
                 if response in ["y", "yes"]:
                     # Execute the action
-                    result_message = self.llm_service.execute_tool_action(
+                    result_message = self.container.tool_execution_service.execute_tool(
                         tool_name, parameters, self.user_id, self.party_id
                     )
 
@@ -116,22 +110,17 @@ class LLMCLIHarness:
         return True
 
     async def process_query(self, question: str):
-        """Process a user query."""
-        if not self.llm_service:
-            print(f"{Colors.RED}Error: LLM service not initialized{Colors.END}")
-            return
-
         try:
             print(f"{Colors.YELLOW}Processing...{Colors.END}")
-            response = self.llm_service.process_query(self.user_id, self.party_id, question)
-            tool_calls = self.llm_service.extract_tool_calls(response)
+            response = self.container.conversation_service.process_query(self.user_id, self.party_id, question)            
+            tool_calls = self.container.tool_execution_service.extract_tool_calls(response)
             # Handle tool calls if present
             if tool_calls is not None and len(tool_calls) > 0:
                 await self.handle_tool_calls(tool_calls)
                 return
 
             # Get the answer text
-            answer = self.llm_service.get_answer(response)
+            answer = self.container.conversation_service._extract_answer(response)
             if not answer:
                 answer = "I couldn't generate a response."
 
@@ -147,8 +136,7 @@ class LLMCLIHarness:
 
     async def run(self):
         """Run the interactive CLI."""
-        self.initialize()
-        await self.llm_service.initialize()
+        await self.initialize()        
         self.print_banner()
 
         while True:
@@ -163,9 +151,6 @@ class LLMCLIHarness:
                 if user_input.lower() in ["exit", "quit"]:
                     print(f"\n{Colors.BLUE}Goodbye!{Colors.END}\n")
                     break
-
-                elif user_input.lower() == "reindex":
-                    await self.llm_service.initialize(True)
 
                 elif user_input.lower() == "help":
                     self.print_help()

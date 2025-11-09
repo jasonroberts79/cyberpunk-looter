@@ -37,7 +37,7 @@ class TestAppStorageWriteData:
 
         storage = AppStorage(bucket_name="test-bucket")
         test_data = "test data content"
-        storage.writedata("test_file.json", test_data)
+        storage.write_data("test_file.json", test_data)
 
         mock_bucket.blob.assert_called_once_with("test_file.json")
         mock_blob.upload_from_string.assert_called_once_with(test_data)
@@ -54,7 +54,7 @@ class TestAppStorageWriteData:
 
         storage = AppStorage(bucket_name="test-bucket")
         test_data = '{"key": "value", "number": 42}'
-        storage.writedata("data.json", test_data)
+        storage.write_data("data.json", test_data)
 
         mock_bucket.blob.assert_called_once_with("data.json")
         mock_blob.upload_from_string.assert_called_once_with(test_data)
@@ -76,7 +76,7 @@ class TestAppStorageReadData:
         mock_client.return_value = mock_client_instance
 
         storage = AppStorage(bucket_name="test-bucket")
-        result = storage.readdata("test_file.json")
+        result = storage.read_data("test_file.json")
 
         assert result == "test data content"
         mock_bucket.blob.assert_called_once_with("test_file.json")
@@ -95,7 +95,7 @@ class TestAppStorageReadData:
         mock_client.return_value = mock_client_instance
 
         storage = AppStorage(bucket_name="test-bucket")
-        result = storage.readdata("nonexistent.json")
+        result = storage.read_data("nonexistent.json")
 
         assert result is None
         mock_bucket.blob.assert_called_once_with("nonexistent.json")
@@ -116,7 +116,7 @@ class TestAppStorageReadData:
         mock_client.return_value = mock_client_instance
 
         storage = AppStorage(bucket_name="test-bucket")
-        result = storage.readdata("data.json")
+        result = storage.read_data("data.json")
 
         assert result == json_data
         mock_bucket.blob.assert_called_once_with("data.json")

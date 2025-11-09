@@ -8,7 +8,6 @@ application dependencies, eliminating global state and tight coupling.
 from anthropic import Anthropic
 from app_storage import AppStorage
 from config import AppConfig
-from typing import TYPE_CHECKING
 from conversation_memory import ConversationMemory
 from user_memory_repository import UserMemoryRepository
 from party_repository import PartyRepository
@@ -22,9 +21,7 @@ from tools.remove_party_character import RemovePartyCharacterTool
 from tools.view_party_members import ViewPartyMembersTool
 from tools.recommend_gear import RecommendGearTool
 from graphrag_system import GraphRAGSystem
-
-if TYPE_CHECKING:
-    from bot_reactions import DiscordReactions
+from bot_reactions import DiscordReactions
 
 
 class Container:
@@ -43,7 +40,7 @@ class Container:
         Args:
             config: Application configuration (created from environment if not provided)
         """
-        self.config = config or AppConfig.from_environment()
+        self.config = config or AppConfig()
 
         # Lazy initialization - components are created on first access
         self._storage: AppStorage | None = None
@@ -131,7 +128,7 @@ class Container:
     def graphrag_system(self) -> GraphRAGSystem:
         """Get or create the GraphRAG system instance."""
         if self._graphrag_system is None:
-            self._graphrag_system = GraphRAGSystem()
+            self._graphrag_system = GraphRAGSystem(self.storage, self.config)
         return self._graphrag_system
 
     @property
@@ -178,6 +175,12 @@ class Container:
                 config=self.config.llm
             )
         return self._conversation_service
+
+    @property
+    def reaction_handler(self) -> DiscordReactions:
+        if(self._reactions_handler is None):
+            self._reactions_handler = DiscordReactions(self.tool_execution_service)
+        return self._reactions_handler
 
     async def initialize(self, force_reindex: bool = False) -> None:
         """

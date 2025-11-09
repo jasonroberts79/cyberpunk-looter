@@ -5,9 +5,9 @@ This module centralizes all configuration values and magic numbers
 that were previously scattered throughout the codebase.
 """
 
-from typing import Optional
 from pydantic import BaseModel
-
+import os
+from exceptions import ConfigurationError
 
 class LLMConfig(BaseModel):
     """Configuration for LLM service."""
@@ -44,6 +44,8 @@ class MemoryConfig(BaseModel):
 class GraphRAGConfig(BaseModel):
     """Configuration for Graph RAG system."""
 
+    embeddings_model: str = "text-embedding-3-small"
+
     chunk_size: int = 1000
     """Size of text chunks for document processing."""
 
@@ -68,7 +70,9 @@ class GraphRAGConfig(BaseModel):
     file_tracking_file: str = "processed_files.json"
     """Filename for tracking processed files and their checksums."""
 
+    vector_index_name: str = "document_embeddings"
 
+    kb_path: str = "knowledge_base"
 class DiscordBotConfig(BaseModel):
     """Configuration for Discord bot behavior."""
 
@@ -88,46 +92,52 @@ class DiscordBotConfig(BaseModel):
     """Whether to show typing indicator while processing."""
 
 
-class AppConfig(BaseModel):
+class AppConfig:
     """Root application configuration."""
 
-    llm: LLMConfig = LLMConfig()
-    memory: MemoryConfig = MemoryConfig()
-    graphrag: GraphRAGConfig = GraphRAGConfig()
-    discord: DiscordBotConfig = DiscordBotConfig()
+    def __init__(self):
 
-    # Environment-based configuration (loaded from env vars)
-    discord_token: Optional[str] = None
-    anthropic_api_key: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    neo4j_uri: Optional[str] = None
-    neo4j_username: Optional[str] = None
-    neo4j_password: Optional[str] = None
-    gcs_bucket_name: Optional[str] = None
+        self.llm: LLMConfig = LLMConfig()
+        self.memory: MemoryConfig = MemoryConfig()
+        self.graphrag: GraphRAGConfig = GraphRAGConfig()
+        self.discord: DiscordBotConfig = DiscordBotConfig()
 
-    @classmethod
-    def from_environment(cls) -> "AppConfig":
+
+        # Environment-based configuration (loaded from env vars)
+        self.discord_token=self._get_config_value("DISCORD_BOT_TOKEN")
+        
+        self.neo4j_uri=self._get_config_value("NEO4J_URI")
+        self.neo4j_username=self._get_config_value("NEO4J_USERNAME")
+        self.neo4j_password=self._get_config_value("NEO4J_PASSWORD")
+        
+        self.anthropic_api_key=self._get_config_value("OPENAI_API_KEY")        
+        self.llm_model = self._get_config_value("OPENAI_MODEL")
+        self.llm_url = self._get_config_value("OPENAI_BASE_URL")
+
+        self.embeddings_key = self._get_config_value("OPENAI_EMBEDDINGS_KEY")
+        self.embeddings_url = self._get_config_value("OPENAI_EMBEDDINGS_BASE_URL")
+
+        self.gcs_bucket_name=self._get_config_value("GCS_BUCKET_NAME")
+        
+
+    def _get_config_value(self, key: str) -> str:
         """
-        Create configuration from environment variables.
+        Get a required configuration value from environment.
+
+        Args:
+            key: The environment variable name
 
         Returns:
-            AppConfig instance populated from environment
+            The configuration value (guaranteed non-empty)
 
         Raises:
-            ConfigurationError: If required environment variables are missing
+            ConfigurationError: If the variable is missing or empty
         """
-        from app_config import get_config_value
-
-        return cls(
-            discord_token=get_config_value("DISCORD_BOT_TOKEN"),
-            anthropic_api_key=get_config_value("ANTHROPIC_API_KEY"),
-            openai_api_key=get_config_value("OPENAI_API_KEY"),
-            neo4j_uri=get_config_value("NEO4J_URI"),
-            neo4j_username=get_config_value("NEO4J_USERNAME"),
-            neo4j_password=get_config_value("NEO4J_PASSWORD"),
-            gcs_bucket_name=get_config_value("GCS_BUCKET_NAME"),
-        )
-
-
+        value = os.getenv(key)
+        if not value or value.strip() == "":
+            raise ConfigurationError(
+                f"Required environment variable '{key}' is missing or empty"
+            )
+        return value.strip()
 # Default configuration instance for convenience
 DEFAULT_CONFIG = AppConfig()

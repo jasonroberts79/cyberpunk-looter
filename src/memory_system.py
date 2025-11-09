@@ -2,18 +2,18 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from collections import defaultdict
-from app_storage import AppStorage
-from app_config import get_config_value
+from src.config import AppConfig
+from src.interfaces import Storage
 
 class MemorySystem:
     def __init__(
         self,
-        memory_file: str = "long_term_memory.json",
-        party_file: str = "party_data.json",
+        storage: Storage,
+        config: AppConfig        
     ):
-        self.memory_file = memory_file
-        self.party_file = party_file
-        self.storage = AppStorage(bucket_name=get_config_value("GCS_BUCKET_NAME"))
+        self.memory_file = config.memory.long_term_storage_file
+        self.party_file = config.memory.party_storage_file
+        self.storage = storage
         self.short_term_memory: Dict[str, List[Dict]] = defaultdict(list)
         self.long_term_memory: Dict[str, Dict] = {}
         self.party_data: Dict[str, Dict] = {}
@@ -22,7 +22,7 @@ class MemorySystem:
 
     def load_long_term_memory(self):
         try:
-            data = self.storage.readdata(self.memory_file)
+            data = self.storage.read_data(self.memory_file)
             if data:
                 self.long_term_memory = json.loads(data)
                 print(f"Loaded long-term memory for {len(self.long_term_memory)} users")
@@ -35,13 +35,13 @@ class MemorySystem:
     def save_long_term_memory(self):
         try:
             data = json.dumps(self.long_term_memory, indent=2)
-            self.storage.writedata(self.memory_file, data)
+            self.storage.write_data(self.memory_file, data)
         except Exception as e:
             print(f"Error saving long-term memory: {e}")
 
     def load_party_data(self):
         try:
-            data = self.storage.readdata(self.party_file)
+            data = self.storage.read_data(self.party_file)
             if data:
                 self.party_data = json.loads(data)
                 print(f"Loaded party data for {len(self.party_data)} parties")
@@ -54,7 +54,7 @@ class MemorySystem:
     def save_party_data(self):
         try:
             data = json.dumps(self.party_data, indent=2)
-            self.storage.writedata(self.party_file, data)
+            self.storage.write_data(self.party_file, data)
         except Exception as e:
             print(f"Error saving party data: {e}")
 

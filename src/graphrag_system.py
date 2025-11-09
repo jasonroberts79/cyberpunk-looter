@@ -13,69 +13,62 @@ from neo4j_graphrag.llm import OpenAILLM
 from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
-from app_storage import AppStorage
-from app_config import get_config_value
-
+from src.config import AppConfig
+from src.interfaces import Storage
 
 class GraphRAGSystem:
     NO_DATA_MESSAGE = "No relevant information found in the knowledge base."
 
     def __init__(
         self,
-        max_retry_attempts: int = 3,
-        retry_delay: float = 1.0,
+        storage: Storage,
+        config: AppConfig,
     ):
         # Store connection parameters for reconnection
-        self.neo4j_uri = get_config_value("NEO4J_URI")
-        self.neo4j_username = get_config_value("NEO4J_USERNAME")
-        self.neo4j_password = get_config_value("NEO4J_PASSWORD")
-        self.max_retry_attempts = max_retry_attempts
-        self.retry_delay = retry_delay
+        self.neo4j_uri = config.neo4j_uri
+        self.neo4j_username = config.neo4j_username
+        self.neo4j_password = config.neo4j_password
+        self.max_retry_attempts = config.graphrag.max_retries
+        self.retry_delay = config.graphrag.retry_delay_seconds
 
         print(f"Connecting to Neo4j at {self.neo4j_uri}")
         self.driver_initialized = False
-        self._connect_to_neo4j()
-
-        embedding_model = "text-embedding-3-small"
-        embeddings_base_url = get_config_value("OPENAI_EMBEDDINGS_BASE_URL")
-        embeddings_key = get_config_value("OPENAI_EMBEDDINGS_KEY")
-        print(f"Initializing OpenAI embeddings: {embedding_model}")
+        self._connect_to_neo4j()        
+                
+        print(f"Initializing OpenAI embeddings: {config.graphrag.embeddings_model}")
         self.embedder = OpenAIEmbeddings(
-            api_key=embeddings_key,
-            model=embedding_model,
-            base_url=embeddings_base_url,
+            api_key=config.embeddings_key,
+            model=config.graphrag.embeddings_model,
+            base_url=config.embeddings_url,
         )
-
-        llm_model = get_config_value("OPENAI_MODEL")
-        llm_base_url = get_config_value("OPENAI_BASE_URL")
-        llm_api_key = get_config_value("OPENAI_API_KEY")
+        
         self.llm = OpenAILLM(
-            api_key=llm_api_key,
-            base_url=llm_base_url,
-            model_name=llm_model,
-            model_params={"temperature": 0.6},
+            api_key=config.anthropic_api_key,
+            base_url=config.llm_url,
+            model_name=config.llm_model,
+            model_params={"temperature": config.llm.temperature},
         )
 
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=config.graphrag.chunk_size,
+            chunk_overlap=config.graphrag.chunk_overlap,
             length_function=len,
         )
 
-        self.knowledge_dir = Path("knowledge_base")
+        self.knowledge_dir = Path(config.graphrag.kb_path)
         self.knowledge_dir.mkdir(exist_ok=True)
 
-        self.vector_index_name = "document_embeddings"
+        self.vector_index_name = config.graphrag.vector_index_name
         self.retriever = None
         self.rag = None
 
-        self.storage = AppStorage(bucket_name=get_config_value("GCS_BUCKET_NAME"))
-        self.tracking_file = "knowledge_base_tracking.json"
+        self.storage = storage
+        self.tracking_file = config.graphrag.file_tracking_file
         self.processed_files: Dict[str, Dict] = self._load_tracking()
 
     def _load_tracking(self) -> Dict[str, Dict]:
         try:
-            data = self.storage.readdata(self.tracking_file)
+            data = self.storage.read_data(self.tracking_file)
             if data:
                 return json.loads(data)
             return {}
@@ -86,7 +79,7 @@ class GraphRAGSystem:
     def _save_tracking(self):
         try:
             data = json.dumps(self.processed_files, indent=2)
-            self.storage.writedata(self.tracking_file, data)
+            self.storage.write_data(self.tracking_file, data)
         except Exception as e:
             print(f"Error saving tracking file: {e}")
 

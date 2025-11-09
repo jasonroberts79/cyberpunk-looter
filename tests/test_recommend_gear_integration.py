@@ -3,6 +3,7 @@ Integration tests for the recommend_gear command logic.
 """
 
 import pytest
+from src.config import AppConfig
 from src.memory_system import MemorySystem
 from unittest.mock import Mock, patch
 
@@ -14,9 +15,9 @@ rogue = "Rogue"
 @pytest.fixture
 def mock_storage():
     """Mock AppStorage for testing"""
-    with patch("src.memory_system.AppStorage") as mock:
+    with patch("src.interfaces.Storage") as mock:
         storage_instance = Mock()
-        storage_instance.readdata.return_value = None
+        storage_instance.read_data.return_value = None
         mock.return_value = storage_instance
         yield storage_instance
 
@@ -24,7 +25,7 @@ def mock_storage():
 @pytest.fixture
 def memory_system(mock_storage):
     """Create a MemorySystem instance for testing"""
-    return MemorySystem()
+    return MemorySystem(mock_storage, AppConfig())
 
 
 def test_get_all_party_members_default(memory_system):

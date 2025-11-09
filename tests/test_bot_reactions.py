@@ -5,7 +5,8 @@ import time
 import discord
 from unittest.mock import Mock, AsyncMock
 from src.bot_reactions import DiscordReactions
-from src.llm_service import LLMService
+
+from src.interfaces import ToolExecutor
 from src.models import PendingConfirmation
 
 class TestDiscordReactionsInit:
@@ -13,9 +14,9 @@ class TestDiscordReactionsInit:
 
     def test_init_success(self):
         """Test successful initialization."""
-        mock_llm_service = Mock(spec=LLMService)
-
-        reactions = DiscordReactions(mock_llm_service)
+        
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         assert reactions.pending_confirmations == {}
 class TestAddPendingConfirmation:
@@ -23,8 +24,8 @@ class TestAddPendingConfirmation:
 
     def test_add_pending_confirmation_basic(self):
         """Test adding a basic confirmation."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -42,8 +43,8 @@ class TestAddPendingConfirmation:
 
     def test_add_pending_confirmation_with_channel(self):
         """Test adding confirmation with channel ID."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -58,8 +59,8 @@ class TestAddPendingConfirmation:
 
     def test_add_pending_confirmation_has_timestamp(self):
         """Test that confirmation includes timestamp."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         before_time = time.time()
         reactions.add_pending_confirmation(
@@ -80,8 +81,8 @@ class TestGetPendingConfirmation:
 
     def test_get_pending_confirmation_exists(self):
         """Test getting an existing confirmation."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -98,8 +99,8 @@ class TestGetPendingConfirmation:
 
     def test_get_pending_confirmation_not_exists(self):
         """Test getting a non-existent confirmation."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         result = reactions.get_pending_confirmation("nonexistent")
 
@@ -111,8 +112,8 @@ class TestRemovePendingConfirmation:
 
     def test_remove_pending_confirmation_exists(self):
         """Test removing an existing confirmation."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -128,8 +129,8 @@ class TestRemovePendingConfirmation:
 
     def test_remove_pending_confirmation_not_exists(self):
         """Test removing a non-existent confirmation doesn't crash."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         # Should not raise an error
         reactions.remove_pending_confirmation("nonexistent")
@@ -140,8 +141,8 @@ class TestIsTimedOut:
 
     def test_is_timed_out_not_timed_out(self):
         """Test confirmation that hasn't timed out."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time())
 
@@ -151,8 +152,8 @@ class TestIsTimedOut:
 
     def test_is_timed_out_timed_out(self):
         """Test confirmation that has timed out."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time() - 120)
 
@@ -162,8 +163,8 @@ class TestIsTimedOut:
 
     def test_is_timed_out_custom_timeout(self):
         """Test with custom timeout duration."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time() - 15)        
 
@@ -178,11 +179,11 @@ class TestHandleApproval:
     @pytest.mark.asyncio
     async def test_handle_approval_success(self):
         """Test successful approval handling."""
-        mock_llm_service = Mock(spec=LLMService)
-        mock_llm_service.execute_tool = Mock(
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        mock_tool_exec_service.execute_tool = Mock(
             return_value=(True, "Character added successfully!")
         )
-        reactions = DiscordReactions(mock_llm_service)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.id = 123
@@ -198,7 +199,7 @@ class TestHandleApproval:
 
         await reactions.handle_approval(mock_message, confirmation)
 
-        mock_llm_service.execute_tool.assert_called_once_with(
+        mock_tool_exec_service.execute_tool.assert_called_once_with(
             tool_name="add_party_character",
             arguments={"name": "V", "role": "Solo"},
             user_id="user456",
@@ -210,9 +211,9 @@ class TestHandleApproval:
     @pytest.mark.asyncio
     async def test_handle_approval_marks_processed(self):
         """Test that approval marks confirmation as processed."""
-        mock_llm_service = Mock(spec=LLMService)
-        mock_llm_service.execute_tool_action = Mock(return_value=(True, "Success"))
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        mock_tool_exec_service.execute_tool_action = Mock(return_value=(True, "Success"))
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -234,9 +235,9 @@ class TestHandleApproval:
     @pytest.mark.asyncio
     async def test_handle_approval_error(self):
         """Test approval handling when execution fails."""
-        mock_llm_service = Mock(spec=LLMService)
-        mock_llm_service.execute_tool_action = Mock(side_effect=Exception("Execution error"))
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        mock_tool_exec_service.execute_tool_action = Mock(side_effect=Exception("Execution error"))
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.id = 123
@@ -267,10 +268,9 @@ class TestHandleApproval:
     @pytest.mark.asyncio
     async def test_handle_approval_missing_llm_service(self):
         """Test approval fails gracefully without LLM service."""
-        mock_llm_service = Mock(spec=LLMService)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
         # Set llm_service to None after initialization
-        reactions = DiscordReactions(mock_llm_service)
-        reactions.llm_service = None  # type: ignore[assignment]
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.id = 123
@@ -289,7 +289,7 @@ class TestHandleApproval:
         mock_message.reply.assert_called_once()
         call_args = mock_message.reply.call_args[0][0]
         assert "Error" in call_args or "required" in call_args
-
+        
 
 class TestHandleRejection:
     """Test handling rejection reactions."""
@@ -297,8 +297,8 @@ class TestHandleRejection:
     @pytest.mark.asyncio
     async def test_handle_rejection_add_character(self):
         """Test rejection for add_party_character."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.id = 123
@@ -331,8 +331,8 @@ class TestHandleRejection:
     @pytest.mark.asyncio
     async def test_handle_rejection_remove_character(self):
         """Test rejection for remove_party_character."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.reply = AsyncMock()
@@ -361,8 +361,8 @@ class TestHandleRejection:
     @pytest.mark.asyncio
     async def test_handle_rejection_view_party(self):
         """Test rejection for view_party_members."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.reply = AsyncMock()
@@ -383,8 +383,8 @@ class TestHandleRejection:
     @pytest.mark.asyncio
     async def test_handle_rejection_recommend_gear(self):
         """Test rejection for recommend_gear."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.reply = AsyncMock()
@@ -409,8 +409,8 @@ class TestHandleTimeout:
     @pytest.mark.asyncio
     async def test_handle_timeout_success(self):
         """Test successful timeout handling."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_message = AsyncMock(spec=discord.Message)
         mock_message.id = 123
@@ -445,8 +445,8 @@ class TestHandleTimeout:
     @pytest.mark.asyncio
     async def test_handle_timeout_no_channel_id(self):
         """Test timeout handling without channel ID."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_bot = Mock()
 
@@ -468,8 +468,8 @@ class TestHandleTimeout:
     @pytest.mark.asyncio
     async def test_handle_timeout_message_not_found(self):
         """Test timeout handling when message is deleted."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         # Create proper discord.NotFound error
         mock_response = Mock()
@@ -507,8 +507,8 @@ class TestCheckAndCleanupTimeouts:
     @pytest.mark.asyncio
     async def test_check_and_cleanup_timeouts_removes_old(self):
         """Test that old confirmations are cleaned up."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_bot = Mock()
         mock_bot.get_channel = Mock(return_value=None)
@@ -533,8 +533,8 @@ class TestCheckAndCleanupTimeouts:
     @pytest.mark.asyncio
     async def test_check_and_cleanup_timeouts_keeps_recent(self):
         """Test that recent confirmations are kept."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_bot = Mock()
 
@@ -555,8 +555,8 @@ class TestCheckAndCleanupTimeouts:
     @pytest.mark.asyncio
     async def test_check_and_cleanup_timeouts_only_user(self):
         """Test that only specified user's confirmations are checked."""
-        mock_llm_service = Mock(spec=LLMService)
-        reactions = DiscordReactions(mock_llm_service)
+        mock_tool_exec_service = Mock(spec=ToolExecutor)
+        reactions = DiscordReactions(mock_tool_exec_service)
 
         mock_bot = Mock()
         mock_bot.get_channel = Mock(return_value=None)
@@ -586,3 +586,4 @@ class TestCheckAndCleanupTimeouts:
         # Only user456's confirmation should be removed
         assert "123" not in reactions.pending_confirmations
         assert "456" in reactions.pending_confirmations
+

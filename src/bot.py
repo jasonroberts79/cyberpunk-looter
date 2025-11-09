@@ -7,13 +7,13 @@ from the container to eliminate global state.
 
 import io
 import json
+from sre_compile import isstring
 import sys
 import traceback
 import discord
 from discord.ext import commands
 from discord.ext.commands import Context
 from dotenv import load_dotenv
-from app_config import get_config_value
 from bot_reactions import DiscordReactions
 from container import Container
 
@@ -37,9 +37,6 @@ async def on_ready():
     print(f"{bot.user} has connected to Discord!")
     print("Initializing services...")
 
-    # Create container with all dependencies
-    container = Container()
-
     # Initialize async components
     await container.initialize()
 
@@ -54,7 +51,7 @@ async def on_reaction_add(reaction, user):
         return
 
     # Get reactions handler from container
-    reactions_handler = _get_reactions_handler()
+    reactions_handler = container.reaction_handler
     if not reactions_handler:
         return
 
@@ -104,7 +101,7 @@ async def ask_question(ctx: Context, *, question: str):
     # Get services from container
     conversation_service = container.conversation_service
     tool_execution_service = container.tool_execution_service
-    reactions_handler = _get_reactions_handler()
+    reactions_handler = container.reaction_handler
 
     if not reactions_handler:
         await ctx.send("Bot is not fully initialized. Please try again in a moment.")
@@ -184,7 +181,7 @@ async def _handle_tool_calls(ctx: Context, tool_calls: list) -> None:
     user_id = str(ctx.author.id)
     party_id = str(ctx.guild.id) if ctx.guild else user_id
     tool_execution_service = container.tool_execution_service
-    reactions_handler = _get_reactions_handler()
+    reactions_handler = container.reaction_handler
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
         tool_arguments = tool_call["arguments"]
@@ -229,23 +226,6 @@ async def _handle_tool_calls(ctx: Context, tool_calls: list) -> None:
             channel_id=str(ctx.channel.id),
         )
 
-def _get_reactions_handler() -> DiscordReactions:
-    """
-    Get the reactions handler from the container.
-
-    Returns:
-        DiscordReactions instance or None if not initialized
-    """
-
-    # Create reactions handler if it doesn't exist
-    # Note: We'll need to add this to the container or create it here
-    if not hasattr(container, '_reactions_handler'):
-        handler = DiscordReactions(container.tool_execution_service)
-        container._reactions_handler = handler
-
-    return container.reactions_handler  # pyright: ignore[reportAttributeAccessIssue]
-
-
 def _extract_answer(response) -> str | None:
     """
     Extract text answer from LLM response.
@@ -263,12 +243,13 @@ def _extract_answer(response) -> str | None:
 
 
 if __name__ == "__main__":
-    # Get Discord token from environment
-    try:
-        DISCORD_TOKEN = get_config_value("DISCORD_BOT_TOKEN")
-    except Exception as e:
-        print(f"ERROR: {e}")
-        sys.exit(1)
+    # Create container with all dependencies
+    container = Container()
+    
+    DISCORD_TOKEN = container.config.discord_token
+    if(not isstring(DISCORD_TOKEN)):
+        print("ERROR: DISCORD_TOKEN not set")
+        sys.exit(1)        
 
     try:
         bot.run(DISCORD_TOKEN)

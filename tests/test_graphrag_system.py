@@ -7,25 +7,24 @@ from unittest.mock import Mock, patch, mock_open, AsyncMock
 from neo4j.exceptions import ServiceUnavailable
 from langchain.schema import Document
 
+from src.config import AppConfig
 from src.graphrag_system import GraphRAGSystem
 
 
 class TestGraphRAGSystemInit:
     """Test GraphRAGSystem initialization."""
 
-    @patch("src.graphrag_system.GraphDatabase")
-    @patch("src.graphrag_system.OpenAIEmbeddings")
-    @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
-    def test_init_success(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
+    @patch("src.graphrag_system.GraphDatabase")    
+    @patch("src.interfaces.Storage")
+    def test_init_success(self, mock_storage, mock_graph_db):
         """Test successful initialization of GraphRAGSystem."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         assert system.driver is not None
         assert system.neo4j_uri == "bolt://localhost:7687"
@@ -34,24 +33,22 @@ class TestGraphRAGSystemInit:
         mock_driver.verify_connectivity.assert_called_once()
 
     @patch("src.graphrag_system.GraphDatabase")
-    @patch("src.graphrag_system.OpenAIEmbeddings")
-    @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_init_with_custom_retry_params(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
+        self, mock_storage, mock_graph_db
     ):
         """Test initialization with custom retry parameters."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            max_retry_attempts=5,
-            retry_delay=2.0,
-        )
-
+        config = AppConfig()
+        config.graphrag.max_retries = 5
+        config.graphrag.retry_delay_seconds = 2.0
+        system = GraphRAGSystem(mock_storage_instance, config)
+        
         assert system.max_retry_attempts == 5
         assert system.retry_delay == 2.0
 
@@ -59,42 +56,38 @@ class TestGraphRAGSystemInit:
 class TestConnectionManagement:
     """Test connection management and retry logic."""
 
-    @patch("src.graphrag_system.GraphDatabase")
-    @patch("src.graphrag_system.OpenAIEmbeddings")
-    @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")    
+    @patch("src.interfaces.Storage")
     def test_ensure_connection_healthy(
-        self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
+        self, mock_storage, mock_graph_db
     ):
         """Test _ensure_connection with healthy connection."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         # Should not raise any exception
         system._ensure_connection()
         assert mock_driver.verify_connectivity.call_count >= 1
 
-    @patch("src.graphrag_system.GraphDatabase")
-    @patch("src.graphrag_system.OpenAIEmbeddings")
-    @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")    
+    @patch("src.interfaces.Storage")
     @patch("src.graphrag_system.time.sleep")
     def test_execute_with_retry_success_on_first_attempt(
-        self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
+        self, mock_sleep, mock_storage, mock_graph_db
     ):
         """Test _execute_with_retry succeeds on first attempt."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         mock_operation = Mock(return_value="success")
         result = system._execute_with_retry(mock_operation, "test operation")
@@ -103,25 +96,23 @@ class TestConnectionManagement:
         mock_operation.assert_called_once()
         mock_sleep.assert_not_called()
 
-    @patch("src.graphrag_system.GraphDatabase")
-    @patch("src.graphrag_system.OpenAIEmbeddings")
-    @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.graphrag_system.GraphDatabase")    
+    @patch("src.interfaces.Storage")
     @patch("src.graphrag_system.time.sleep")
     def test_execute_with_retry_success_after_failure(
-        self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
+        self, mock_sleep, mock_storage, mock_graph_db
     ):
         """Test _execute_with_retry succeeds after initial failure."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            max_retry_attempts=3,
-            retry_delay=0.1,
-        )
+        config = AppConfig()
+        config.graphrag.max_retries = 3
+        config.graphrag.retry_delay_seconds = 0.1
+        system = GraphRAGSystem(mock_storage_instance, config)
 
         # First call fails, second succeeds
         mock_operation = Mock(side_effect=[ServiceUnavailable("Connection lost"), "success"])
@@ -134,7 +125,7 @@ class TestConnectionManagement:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     @patch("src.graphrag_system.time.sleep")
     def test_execute_with_retry_exhausts_attempts(
         self, mock_sleep, mock_storage, mock_llm, mock_embeddings, mock_graph_db
@@ -143,13 +134,13 @@ class TestConnectionManagement:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem(
-            max_retry_attempts=2,
-            retry_delay=0.1,
-        )
+        config = AppConfig()
+        config.graphrag.max_retries = 2
+        config.graphrag.retry_delay_seconds = 0.1
+        system = GraphRAGSystem(mock_storage_instance, config)        
 
         mock_operation = Mock(side_effect=ServiceUnavailable("Connection lost"))
 
@@ -165,7 +156,7 @@ class TestFileMetadata:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_get_file_metadata_computes_checksum(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -173,10 +164,10 @@ class TestFileMetadata:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         test_content = b"test file content"
         expected_checksum = hashlib.sha256(test_content).hexdigest()
@@ -190,7 +181,7 @@ class TestFileMetadata:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_file_needs_processing_new_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -198,10 +189,10 @@ class TestFileMetadata:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         with patch("builtins.open", mock_open(read_data=b"content")):
             needs_processing = system._file_needs_processing(Path("/new/file.txt"))
@@ -211,7 +202,7 @@ class TestFileMetadata:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_file_needs_processing_unchanged_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -219,10 +210,10 @@ class TestFileMetadata:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         test_content = b"content"
         checksum = hashlib.sha256(test_content).hexdigest()
@@ -241,7 +232,7 @@ class TestFileMetadata:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_file_needs_processing_modified_file(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -249,10 +240,10 @@ class TestFileMetadata:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         old_content = b"old content"
         new_content = b"new content"
@@ -275,16 +266,16 @@ class TestFileCategorizationAndLoading:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_categorize_files_all_new(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test categorizing files when all are new."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         files = [Path("/file1.pdf"), Path("/file2.md")]
 
@@ -297,7 +288,7 @@ class TestFileCategorizationAndLoading:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_categorize_files_force_rebuild(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -305,10 +296,10 @@ class TestFileCategorizationAndLoading:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         files = [Path("/file1.pdf"), Path("/file2.md")]
 
@@ -320,7 +311,7 @@ class TestFileCategorizationAndLoading:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_load_pdf_document_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -328,10 +319,10 @@ class TestFileCategorizationAndLoading:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         mock_page = Mock()
         mock_page.extract_text.return_value = "Test content"
@@ -349,7 +340,7 @@ class TestFileCategorizationAndLoading:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     @pytest.mark.asyncio
     async def test_load_markdown_document_success(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
@@ -358,10 +349,10 @@ class TestFileCategorizationAndLoading:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         mock_file_content = "# Test Markdown\n\nThis is test content."
 
@@ -389,7 +380,7 @@ class TestDatabaseOperations:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_remove_deleted_files(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test removal of deleted files from knowledge graph."""
         mock_driver = Mock()
@@ -398,10 +389,10 @@ class TestDatabaseOperations:
         mock_driver.session.return_value.__exit__ = Mock(return_value=False)
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         # Set up tracked files
         system.processed_files = {
@@ -419,7 +410,7 @@ class TestDatabaseOperations:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_create_chunk_nodes(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test creation of chunk nodes in Neo4j."""
         mock_driver = Mock()
@@ -428,14 +419,14 @@ class TestDatabaseOperations:
         mock_driver.session.return_value.__exit__ = Mock(return_value=False)
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
         mock_embeddings_instance = Mock()
         mock_embeddings_instance.embed_query.return_value = [0.1] * 1536
         mock_embeddings.return_value = mock_embeddings_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         chunks = [
             Document(
@@ -455,16 +446,16 @@ class TestDatabaseOperations:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_initialize_retriever(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test retriever initialization."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         with (
             patch("src.graphrag_system.VectorRetriever") as mock_retriever_class,
@@ -484,7 +475,7 @@ class TestQueryMethods:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_get_context_for_query_no_retriever(
         self, mock_storage, mock_llm, mock_embeddings, mock_graph_db
     ):
@@ -492,10 +483,10 @@ class TestQueryMethods:
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         result = system.get_context_for_query("test query")
 
@@ -504,16 +495,16 @@ class TestQueryMethods:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_search_no_rag(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test search when RAG is not initialized."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         result = system.search("test query")
 
@@ -522,16 +513,16 @@ class TestQueryMethods:
     @patch("src.graphrag_system.GraphDatabase")
     @patch("src.graphrag_system.OpenAIEmbeddings")
     @patch("src.graphrag_system.OpenAILLM")
-    @patch("src.graphrag_system.AppStorage")
+    @patch("src.interfaces.Storage")
     def test_close_connection(self, mock_storage, mock_llm, mock_embeddings, mock_graph_db):
         """Test closing the Neo4j connection."""
         mock_driver = Mock()
         mock_graph_db.driver.return_value = mock_driver
         mock_storage_instance = Mock()
-        mock_storage_instance.readdata.return_value = None
+        mock_storage_instance.read_data.return_value = None
         mock_storage.return_value = mock_storage_instance
 
-        system = GraphRAGSystem()
+        system = GraphRAGSystem(mock_storage_instance, AppConfig())
 
         system.close()
 
