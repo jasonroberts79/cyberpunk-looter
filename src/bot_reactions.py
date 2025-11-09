@@ -1,32 +1,74 @@
+"""
+Discord reaction handler for tool confirmations.
+
+This module handles user confirmations and rejections for tool actions
+via Discord reactions (emoji).
+"""
+
 import time
 import discord
 from typing import Dict, Optional
-from llm_service import LLMService
+from models import PendingConfirmation
+from config import DiscordBotConfig
 
 
 class DiscordReactions:
-    def __init__(self, llm_service: LLMService) -> None:
-        self.pending_confirmations: Dict[str, Dict] = {}
-        self.llm_service = llm_service
+    """
+    Handles Discord reactions for tool action confirmations.
 
-    async def handle_approval(self, message: discord.Message, confirmation: Dict) -> None:
-        """Handle approval of a confirmation."""
+    This class manages pending confirmations, timeouts, and user approval/rejection
+    of tool actions through Discord reaction buttons.
+    """
+
+    def __init__(
+        self,
+        tool_execution_service,  # ToolExecutionService
+        config: DiscordBotConfig = DiscordBotConfig()
+    ) -> None:
+        """
+        Initialize the Discord reactions handler.
+
+        Args:
+            tool_execution_service: Service for executing tool actions
+            config: Discord bot configuration settings
+        """
+        self.pending_confirmations: Dict[str, PendingConfirmation] = {}
+        self.tool_execution_service = tool_execution_service
+        self.config = config
+
+    async def handle_approval(
+        self,
+        message: discord.Message,
+        confirmation: PendingConfirmation | Dict
+    ) -> None:
+        """
+        Handle approval of a tool action confirmation.
+
+        Args:
+            message: The Discord message containing the confirmation
+            confirmation: The pending confirmation (dataclass or dict for compatibility)
+        """
         try:
-            # Mark confirmation as processed
-            confirmation["processed"] = True
+            # Handle both dict and dataclass for backward compatibility
+            if isinstance(confirmation, dict):
+                action = confirmation["action"]
+                parameters = confirmation["parameters"]
+                user_id = confirmation["user_id"]
+                party_id = confirmation["party_id"]
+                confirmation["processed"] = True
+            else:
+                action = confirmation.action
+                parameters = confirmation.parameters
+                user_id = confirmation.user_id
+                party_id = confirmation.party_id
+                confirmation.processed = True
 
-            # Extract action and parameters
-            action = confirmation["action"]
-            parameters = confirmation["parameters"]
-            user_id = confirmation["user_id"]
-            party_id = confirmation["party_id"]
-
-            # Use LLM service to execute tool action
-            if not self.llm_service:
-                raise ValueError("LLM service is required for tool execution")
-
-            result_message = self.llm_service.execute_tool_action(
-                action, parameters, user_id, party_id
+            # Execute the tool action
+            result_message = self.tool_execution_service.execute_tool(
+                tool_name=action,
+                arguments=parameters,
+                user_id=user_id,
+                party_id=party_id
             )
 
             # Send success message as reply
@@ -41,14 +83,27 @@ class DiscordReactions:
             # Remove from pending confirmations
             self.remove_pending_confirmation(str(message.id))
 
-    async def handle_rejection(self, message: discord.Message, confirmation: Dict) -> None:
-        """Handle rejection of a confirmation."""
-        # Mark confirmation as processed
-        confirmation["processed"] = True
+    async def handle_rejection(
+        self,
+        message: discord.Message,
+        confirmation: PendingConfirmation | Dict
+    ) -> None:
+        """
+        Handle rejection of a tool action confirmation.
 
-        # Extract action and parameters
-        action = confirmation["action"]
-        parameters = confirmation["parameters"]
+        Args:
+            message: The Discord message containing the confirmation
+            confirmation: The pending confirmation (dataclass or dict for compatibility)
+        """
+        # Handle both dict and dataclass for backward compatibility
+        if isinstance(confirmation, dict):
+            action = confirmation["action"]
+            parameters = confirmation["parameters"]
+            confirmation["processed"] = True
+        else:
+            action = confirmation.action
+            parameters = confirmation.parameters
+            confirmation.processed = True
 
         # Generate cancellation message based on action
         if action == "add_party_character":
@@ -79,19 +134,42 @@ class DiscordReactions:
         parameters: Dict,
         channel_id: Optional[str] = None,
     ) -> None:
-        """Add a pending confirmation to the state."""
-        self.pending_confirmations[message_id] = {
-            "user_id": user_id,
-            "party_id": party_id,
-            "action": action,
-            "parameters": parameters,
-            "timestamp": time.time(),
-            "processed": False,
-            "channel_id": channel_id,
-        }
+        """
+        Add a pending confirmation to the state.
 
-    def get_pending_confirmation(self, message_id: str) -> Optional[Dict]:
-        """Get a pending confirmation by message ID."""
+        Args:
+            message_id: Discord message ID for the confirmation
+            user_id: User who initiated the action
+            party_id: Party context for the action
+            action: Tool action name
+            parameters: Tool parameters
+            channel_id: Optional Discord channel ID
+        """
+        confirmation = PendingConfirmation(
+            user_id=user_id,
+            party_id=party_id,
+            action=action,
+            parameters=parameters,
+            timestamp=time.time(),
+            processed=False,
+            channel_id=channel_id,
+            message_id=message_id
+        )
+        self.pending_confirmations[message_id] = confirmation
+
+    def get_pending_confirmation(
+        self,
+        message_id: str
+    ) -> Optional[PendingConfirmation]:
+        """
+        Get a pending confirmation by message ID.
+
+        Args:
+            message_id: Discord message ID
+
+        Returns:
+            PendingConfirmation object or None if not found
+        """
         return self.pending_confirmations.get(message_id)
 
     def remove_pending_confirmation(self, message_id: str) -> None:
@@ -100,11 +178,18 @@ class DiscordReactions:
             del self.pending_confirmations[message_id]
 
     async def check_and_cleanup_timeouts(self, user_id: str, bot) -> None:
-        """Check and cleanup timed out confirmations for a user."""
+        """
+        Check and cleanup timed out confirmations for a user.
+
+        Args:
+            user_id: The user ID to check timeouts for
+            bot: The Discord bot instance
+        """
         # Iterate through all pending confirmations
-        for message_id, confirmation in list(self.pending_confirmations.items()):
+        work_list = list(self.pending_confirmations.items())
+        for message_id, confirmation in work_list:
             # Filter to those matching user_id
-            if confirmation["user_id"] != user_id:
+            if confirmation.user_id != user_id:
                 continue
 
             # Check if timed out
@@ -112,16 +197,44 @@ class DiscordReactions:
                 # Handle timeout
                 await self.handle_timeout(message_id, confirmation, bot)
 
-    def is_timed_out(self, confirmation: Dict, timeout_seconds: int = 60) -> bool:
-        """Check if a confirmation has timed out."""
-        current_time = time.time()
-        return (current_time - confirmation["timestamp"]) > timeout_seconds
+    def is_timed_out(
+        self,
+        confirmation: PendingConfirmation,
+        timeout_seconds: int | None = None
+    ) -> bool:
+        """
+        Check if a confirmation has timed out.
 
-    async def handle_timeout(self, message_id: str, confirmation: Dict, bot) -> None:
-        """Handle timeout for a confirmation."""
+        Args:
+            confirmation: The pending confirmation
+            timeout_seconds: Timeout duration in seconds (uses config if not provided)
+
+        Returns:
+            True if timed out, False otherwise
+        """
+        if timeout_seconds is None:
+            timeout_seconds = self.config.confirmation_timeout_seconds
+
+        current_time = time.time()
+        return (current_time - confirmation.timestamp) > timeout_seconds
+
+    async def handle_timeout(
+        self,
+        message_id: str,
+        confirmation: PendingConfirmation,
+        bot
+    ) -> None:
+        """
+        Handle timeout for a confirmation.
+
+        Args:
+            message_id: Discord message ID
+            confirmation: The timed out confirmation
+            bot: The Discord bot instance
+        """
         try:
             # Get message object from Discord
-            channel_id = confirmation.get("channel_id")
+            channel_id = confirmation.channel_id
             if not channel_id:
                 # If we don't have channel_id, we can't fetch the message
                 self.remove_pending_confirmation(message_id)

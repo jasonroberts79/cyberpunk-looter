@@ -6,7 +6,7 @@ import discord
 from unittest.mock import Mock, AsyncMock
 from src.bot_reactions import DiscordReactions
 from src.llm_service import LLMService
-
+from src.models import PendingConfirmation
 
 class TestDiscordReactionsInit:
     """Test DiscordReactions initialization."""
@@ -17,18 +17,7 @@ class TestDiscordReactionsInit:
 
         reactions = DiscordReactions(mock_llm_service)
 
-        assert reactions.llm_service == mock_llm_service
         assert reactions.pending_confirmations == {}
-
-    def test_init_stores_llm_service(self):
-        """Test that LLM service is stored correctly."""
-        mock_llm_service = Mock(spec=LLMService)
-
-        reactions = DiscordReactions(mock_llm_service)
-
-        assert reactions.llm_service is not None
-
-
 class TestAddPendingConfirmation:
     """Test adding pending confirmations."""
 
@@ -46,10 +35,10 @@ class TestAddPendingConfirmation:
         )
 
         assert "123" in reactions.pending_confirmations
-        assert reactions.pending_confirmations["123"]["user_id"] == "user456"
-        assert reactions.pending_confirmations["123"]["party_id"] == "party789"
-        assert reactions.pending_confirmations["123"]["action"] == "add_party_character"
-        assert reactions.pending_confirmations["123"]["processed"] is False
+        assert reactions.pending_confirmations["123"].user_id == "user456"
+        assert reactions.pending_confirmations["123"].party_id == "party789"
+        assert reactions.pending_confirmations["123"].action == "add_party_character"
+        assert reactions.pending_confirmations["123"].processed is False
 
     def test_add_pending_confirmation_with_channel(self):
         """Test adding confirmation with channel ID."""
@@ -65,7 +54,7 @@ class TestAddPendingConfirmation:
             channel_id="channel789",
         )
 
-        assert reactions.pending_confirmations["123"]["channel_id"] == "channel789"
+        assert reactions.pending_confirmations["123"].channel_id == "channel789"
 
     def test_add_pending_confirmation_has_timestamp(self):
         """Test that confirmation includes timestamp."""
@@ -82,7 +71,7 @@ class TestAddPendingConfirmation:
         )
         after_time = time.time()
 
-        timestamp = reactions.pending_confirmations["123"]["timestamp"]
+        timestamp = reactions.pending_confirmations["123"].timestamp
         assert before_time <= timestamp <= after_time
 
 
@@ -105,7 +94,7 @@ class TestGetPendingConfirmation:
         result = reactions.get_pending_confirmation("123")
 
         assert result is not None
-        assert result["user_id"] == "user456"
+        assert result.user_id == "user456"
 
     def test_get_pending_confirmation_not_exists(self):
         """Test getting a non-existent confirmation."""
@@ -154,7 +143,7 @@ class TestIsTimedOut:
         mock_llm_service = Mock(spec=LLMService)
         reactions = DiscordReactions(mock_llm_service)
 
-        confirmation = {"timestamp": time.time()}
+        confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time())
 
         result = reactions.is_timed_out(confirmation, timeout_seconds=60)
 
@@ -165,7 +154,7 @@ class TestIsTimedOut:
         mock_llm_service = Mock(spec=LLMService)
         reactions = DiscordReactions(mock_llm_service)
 
-        confirmation = {"timestamp": time.time() - 120}  # 2 minutes ago
+        confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time() - 120)
 
         result = reactions.is_timed_out(confirmation, timeout_seconds=60)
 
@@ -176,7 +165,7 @@ class TestIsTimedOut:
         mock_llm_service = Mock(spec=LLMService)
         reactions = DiscordReactions(mock_llm_service)
 
-        confirmation = {"timestamp": time.time() - 15}  # 15 seconds ago
+        confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time() - 15)        
 
         result = reactions.is_timed_out(confirmation, timeout_seconds=10)
 
@@ -190,7 +179,7 @@ class TestHandleApproval:
     async def test_handle_approval_success(self):
         """Test successful approval handling."""
         mock_llm_service = Mock(spec=LLMService)
-        mock_llm_service.execute_tool_action = Mock(
+        mock_llm_service.execute_tool = Mock(
             return_value=(True, "Character added successfully!")
         )
         reactions = DiscordReactions(mock_llm_service)
@@ -209,11 +198,11 @@ class TestHandleApproval:
 
         await reactions.handle_approval(mock_message, confirmation)
 
-        mock_llm_service.execute_tool_action.assert_called_once_with(
-            "add_party_character",
-            {"name": "V", "role": "Solo"},
-            "user456",
-            "party789",
+        mock_llm_service.execute_tool.assert_called_once_with(
+            tool_name="add_party_character",
+            arguments={"name": "V", "role": "Solo"},
+            user_id="user456",
+            party_id="party789",
         )
         mock_message.reply.assert_called_once()
         assert confirmation["processed"] is True
@@ -240,7 +229,7 @@ class TestHandleApproval:
         assert confirmation is not None
         await reactions.handle_approval(mock_message, confirmation)
 
-        assert confirmation["processed"] is True
+        assert confirmation.processed is True
 
     @pytest.mark.asyncio
     async def test_handle_approval_error(self):
@@ -434,11 +423,8 @@ class TestHandleTimeout:
         mock_bot = Mock()
         mock_bot.get_channel = Mock(return_value=mock_channel)
 
-        confirmation = {
-            "channel_id": "789",
-            "timestamp": time.time() - 120,
-        }
-
+        confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time() - 120, channel_id="789")
+        
         reactions.add_pending_confirmation(
             message_id="123",
             user_id="user456",
@@ -464,7 +450,7 @@ class TestHandleTimeout:
 
         mock_bot = Mock()
 
-        confirmation = {}
+        confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time())
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -498,7 +484,7 @@ class TestHandleTimeout:
         mock_bot = Mock()
         mock_bot.get_channel = Mock(return_value=mock_channel)
 
-        confirmation = {"channel_id": "789"}
+        confirmation = PendingConfirmation(user_id="user456", party_id="party789", action="add_party_character", parameters={}, timestamp=time.time(), channel_id="789")
 
         reactions.add_pending_confirmation(
             message_id="123",
@@ -537,7 +523,7 @@ class TestCheckAndCleanupTimeouts:
         )
 
         # Manually set old timestamp
-        reactions.pending_confirmations["123"]["timestamp"] = time.time() - 120
+        reactions.pending_confirmations["123"].timestamp = time.time() - 120
 
         await reactions.check_and_cleanup_timeouts("user456", mock_bot)
 
@@ -592,8 +578,8 @@ class TestCheckAndCleanupTimeouts:
         )
 
         # Set both to old timestamps
-        reactions.pending_confirmations["123"]["timestamp"] = time.time() - 120
-        reactions.pending_confirmations["456"]["timestamp"] = time.time() - 120
+        reactions.pending_confirmations["123"].timestamp = time.time() - 120
+        reactions.pending_confirmations["456"].timestamp = time.time() - 120
 
         await reactions.check_and_cleanup_timeouts("user456", mock_bot)
 

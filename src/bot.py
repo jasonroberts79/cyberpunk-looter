@@ -1,40 +1,48 @@
+"""
+Discord bot for Cyberpunk RED looter functionality.
+
+This module implements the Discord bot interface using dependency injection
+from the container to eliminate global state.
+"""
+
 import io
 import json
 import sys
 import traceback
 import discord
-import tool_system
 from discord.ext import commands
 from discord.ext.commands import Context
 from dotenv import load_dotenv
-from memory_system import MemorySystem
-from llm_service import LLMService
 from app_config import get_config_value
 from bot_reactions import DiscordReactions
+from container import Container
 
 load_dotenv()
 
-DISCORD_TOKEN = get_config_value("DISCORD_BOT_TOKEN")
-
+# Initialize Discord bot
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
-llm_service: LLMService
-memory_system = MemorySystem()
-reactions: DiscordReactions
+
+# Dependency injection container
+container: Container
 
 
 @bot.event
 async def on_ready():
-    global memory_system, llm_service, tool_system, reactions
+    """Initialize services when bot connects to Discord."""
+    global container
 
     print(f"{bot.user} has connected to Discord!")
+    print("Initializing services...")
 
-    print("Initializing LLM service...")
-    llm_service = LLMService(memory_system)
-    reactions = DiscordReactions(llm_service)
+    # Create container with all dependencies
+    container = Container()
+
+    # Initialize async components
+    await container.initialize()
+
     print("Bot is ready!")
 
 
@@ -45,98 +53,90 @@ async def on_reaction_add(reaction, user):
     if user.bot:
         return
 
+    # Get reactions handler from container
+    reactions_handler = _get_reactions_handler()
+    if not reactions_handler:
+        return
+
     # Get message_id
     message_id = str(reaction.message.id)
 
     # Check if message_id in pending_confirmations
-    if message_id not in reactions.pending_confirmations:
+    if message_id not in reactions_handler.pending_confirmations:
         return
 
     # Get confirmation
-    confirmation = reactions.get_pending_confirmation(message_id)
+    confirmation = reactions_handler.get_pending_confirmation(message_id)
     if not confirmation:
         return
 
     # Only original requester can confirm
-    if str(user.id) != confirmation["user_id"]:
+    if str(user.id) != confirmation.user_id:
         return
 
     # Check if already processed
-    if confirmation.get("processed"):
+    if confirmation.processed:
         # Remove reaction and return
         await reaction.remove(user)
         return
 
     # Check if timed out
-    if reactions.is_timed_out(confirmation):
-        await reactions.handle_timeout(message_id, confirmation, bot)
+    if reactions_handler.is_timed_out(confirmation):
+        await reactions_handler.handle_timeout(message_id, confirmation, bot)
         return
 
     # Process based on reaction
     if str(reaction.emoji) == "👍":
-        await reactions.handle_approval(
+        await reactions_handler.handle_approval(
             reaction.message,
             confirmation,
         )
     elif str(reaction.emoji) == "👎":
-        await reactions.handle_rejection(reaction.message, confirmation)
+        await reactions_handler.handle_rejection(reaction.message, confirmation)
 
 
 @bot.command(name="ai", help="Interact with the AI")
 async def ask_question(ctx: Context, *, question: str):
+    """Handle AI interaction command."""
     user_id = str(ctx.author.id)
     party_id = str(ctx.guild.id) if ctx.guild else user_id
 
+    # Get services from container
+    conversation_service = container.conversation_service
+    tool_execution_service = container.tool_execution_service
+    reactions_handler = _get_reactions_handler()
+
+    if not reactions_handler:
+        await ctx.send("Bot is not fully initialized. Please try again in a moment.")
+        return
+
     # Check and cleanup timeouts for this user
-    await reactions.check_and_cleanup_timeouts(user_id, bot)
+    await reactions_handler.check_and_cleanup_timeouts(user_id, bot)
 
     async with ctx.typing():
         try:
-            response = llm_service.process_query(user_id, party_id, question)
-            tool_calls = llm_service.extract_tool_calls(response)
+            # Process the query through the LLM
+            tool_definitions = tool_execution_service.get_tool_definitions()
+            response = conversation_service.process_query(
+                user_id, party_id, question, tool_definitions
+            )
+
+            # Extract and handle tool calls
+            tool_calls = tool_execution_service.extract_tool_calls(response)
             if tool_calls is not None and len(tool_calls) > 0:
-                for tool_call in tool_calls:
-                    tool_name = tool_call["name"]
-                    tool_arguments = tool_call["arguments"]
-                    if not tool_system.is_tool_confirmation_required(tool_name):
-                        # Execute the action directly
-                        result_message = llm_service.execute_tool_action(
-                            tool_name, tool_arguments, user_id, party_id
-                        )
-
-                        await ctx.send(result_message)
-                        continue
-
-                    if isinstance(tool_arguments, str):
-                        parameters = json.loads(tool_arguments)
-                    else:
-                        parameters = tool_arguments
-                    sent_message = await ctx.send(
-                        tool_system.generate_confirmation_message(tool_name, parameters)
-                    )
-
-                    # Add reactions
-                    await sent_message.add_reaction("👍")
-                    await sent_message.add_reaction("👎")
-
-                    reactions.add_pending_confirmation(
-                        message_id=str(sent_message.id),
-                        user_id=ctx.author.id.__str__(),
-                        party_id=party_id,
-                        action=tool_name,
-                        parameters=parameters,
-                        channel_id=str(ctx.channel.id),
-                    )
+                await _handle_tool_calls(ctx, tool_calls)
                 return  # Exit after handling tool calls
 
-            # Get the answer text
-            answer = llm_service.get_answer(response)
+            # Get the answer text from response
+            answer = _extract_answer(response)
             if not answer:
                 await ctx.send("I couldn't generate a response.")
                 return
 
+            # Send the answer
             print(f"Answer to user {user_id}: {answer}")
             if len(answer) > 2000:
+                # Answer too long, send as file
                 file = io.BytesIO(answer.encode("utf-8"))
                 file.seek(0)
                 await ctx.send(file=discord.File(file, filename="answer.txt"))
@@ -168,21 +168,109 @@ async def ask_question(ctx: Context, *, question: str):
 
 @bot.command(name="clear", help="Clear your conversation history")
 async def clear_memory(ctx):
-    if not memory_system:
-        await ctx.send("Memory system not initialized.")
+    """Clear conversation history for the user."""
+    if not container:
+        await ctx.send("Bot is not fully initialized. Please try again in a moment.")
         return
 
     user_id = str(ctx.author.id)
-    memory_system.clear_short_term(user_id)
+    container.unified_memory_system.clear_messages(user_id)
     await ctx.send("Your conversation history has been cleared!")
 
 
+# Helper functions
+
+async def _handle_tool_calls(ctx: Context, tool_calls: list) -> None:
+    user_id = str(ctx.author.id)
+    party_id = str(ctx.guild.id) if ctx.guild else user_id
+    tool_execution_service = container.tool_execution_service
+    reactions_handler = _get_reactions_handler()
+    for tool_call in tool_calls:
+        tool_name = tool_call["name"]
+        tool_arguments = tool_call["arguments"]
+
+        # Check if tool requires confirmation
+        if not tool_execution_service.requires_confirmation(tool_name):
+            # Execute the action directly
+            if isinstance(tool_arguments, str):
+                parameters = json.loads(tool_arguments)
+            else:
+                parameters = tool_arguments
+
+            result_message = tool_execution_service.execute_tool(
+                tool_name, parameters, user_id, party_id
+            )
+            await ctx.send(result_message)
+            continue
+
+        # Tool requires confirmation
+        if isinstance(tool_arguments, str):
+            parameters = json.loads(tool_arguments)
+        else:
+            parameters = tool_arguments
+
+        # Send confirmation message
+        confirmation_msg = tool_execution_service.generate_confirmation_message(
+            tool_name, parameters
+        )
+        sent_message = await ctx.send(confirmation_msg)
+
+        # Add reaction buttons
+        await sent_message.add_reaction("👍")
+        await sent_message.add_reaction("👎")
+
+        # Store pending confirmation
+        reactions_handler.add_pending_confirmation(
+            message_id=str(sent_message.id),
+            user_id=str(ctx.author.id),
+            party_id=party_id,
+            action=tool_name,
+            parameters=parameters,
+            channel_id=str(ctx.channel.id),
+        )
+
+def _get_reactions_handler() -> DiscordReactions:
+    """
+    Get the reactions handler from the container.
+
+    Returns:
+        DiscordReactions instance or None if not initialized
+    """
+
+    # Create reactions handler if it doesn't exist
+    # Note: We'll need to add this to the container or create it here
+    if not hasattr(container, '_reactions_handler'):
+        handler = DiscordReactions(container.tool_execution_service)
+        container._reactions_handler = handler
+
+    return container.reactions_handler  # pyright: ignore[reportAttributeAccessIssue]
+
+
+def _extract_answer(response) -> str | None:
+    """
+    Extract text answer from LLM response.
+
+    Args:
+        response: The LLM response message
+
+    Returns:
+        The text answer, or None if no text content found
+    """
+    text_blocks = [block for block in response.content if block.type == "text"]
+    if text_blocks:
+        return text_blocks[-1].text
+    return None
+
+
 if __name__ == "__main__":
-    if not DISCORD_TOKEN:
-        print("ERROR: DISCORD_BOT_TOKEN not found in environment variables!")
+    # Get Discord token from environment
+    try:
+        DISCORD_TOKEN = get_config_value("DISCORD_BOT_TOKEN")
+    except Exception as e:
+        print(f"ERROR: {e}")
         sys.exit(1)
 
     try:
         bot.run(DISCORD_TOKEN)
     except KeyboardInterrupt:
-        print("Bot stopped by user")
+        print("\nBot stopped by user")

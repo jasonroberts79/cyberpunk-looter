@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from collections import defaultdict
 from app_storage import AppStorage
-
+from app_config import get_config_value
 
 class MemorySystem:
     def __init__(
@@ -13,7 +13,7 @@ class MemorySystem:
     ):
         self.memory_file = memory_file
         self.party_file = party_file
-        self.storage = AppStorage()
+        self.storage = AppStorage(bucket_name=get_config_value("GCS_BUCKET_NAME"))
         self.short_term_memory: Dict[str, List[Dict]] = defaultdict(list)
         self.long_term_memory: Dict[str, Dict] = {}
         self.party_data: Dict[str, Dict] = {}

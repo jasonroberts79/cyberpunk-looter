@@ -27,8 +27,7 @@ class LLMService:
 
         """
 
-        llm_model = get_config_value("OPENAI_MODEL")
-        # llm_base_url = get_config_value("OPENAI_BASE_URL")
+        llm_model = get_config_value("OPENAI_MODEL")        
         llm_api_key = get_config_value("OPENAI_API_KEY")
         self.claude = Anthropic(api_key=llm_api_key)
         self.graphrag_system = GraphRAGSystem()
@@ -181,61 +180,137 @@ class LLMService:
         Returns:
             The tool response
         """
-        tool_response = ""
         try:
             if tool_name == "add_party_character":
-                name = tool_arguments.get("name", "")
-                role = tool_arguments.get("role", "")
-                gear_preferences = tool_arguments.get("gear_preferences", [])
-
-                is_new = self.memory_system.add_party_character(
-                    party_id, name, role, gear_preferences
+                tool_response = self._handle_add_party_character(
+                    tool_arguments, party_id
                 )
-
-                if is_new:
-                    tool_response = f"**{name}** has been added to your party!"
-                else:
-                    tool_response = f"**{name}** has been updated in your party!"
             elif tool_name == "remove_party_character":
-                name = tool_arguments.get("name", "")
-                success = self.memory_system.remove_party_character(party_id, name)
-
-                if success:
-                    tool_response = f"**{name}** has been removed from your party."
-                else:
-                    tool_response = f"Character **{name}** not found in your party."
+                tool_response = self._handle_remove_party_character(
+                    tool_arguments, party_id
+                )
             elif tool_name == "view_party_members":
-                characters = self.memory_system.list_party_characters(party_id)
-
-                if not characters or len(characters) == 0:
-                    tool_response = "You don't have any party members yet."
-                else:
-                    tool_response = "**Your Party Members:**\n\n"
-                    for char in characters:
-                        tool_response += f"**{char['name']}**\n"
-                        tool_response += f"• Role: {char['role']}\n"
-                        if char.get("gear_preferences"):
-                            tool_response += (
-                                f"• Gear Preferences: {', '.join(char['gear_preferences'])}\n"
-                            )
-                        else:
-                            tool_response += "• Gear Preferences: None\n"
-                        tool_response += "\n"
-
+                tool_response = self._handle_view_party_members(party_id)
             elif tool_name == "recommend_gear":
-                loot_description = tool_arguments.get("loot_description", "")
-                excluded_characters = tool_arguments.get("excluded_characters", [])
-
-                tool_response = self.execute_recommend_gear(
-                    user_id, party_id, loot_description, excluded_characters
+                tool_response = self._handle_recommend_gear(
+                    tool_arguments, user_id, party_id
                 )
             else:
-                tool_response = f"Unknown action: {tool_name}"
+                tool_response = self._handle_unknown_action(tool_name)
 
             self.memory_system.add_to_short_term(user_id, "assistant", tool_response)
             return tool_response
         except Exception as e:
             return f"Error executing action: {str(e)}"
+
+    def _handle_add_party_character(
+        self, tool_arguments: Dict, party_id: str
+    ) -> str:
+        """
+        Handle adding a party character.
+
+        Args:
+            tool_arguments: The parameters containing name, role, and gear_preferences
+            party_id: The party ID
+
+        Returns:
+            The response message
+        """
+        name = tool_arguments.get("name", "")
+        role = tool_arguments.get("role", "")
+        gear_preferences = tool_arguments.get("gear_preferences", [])
+
+        is_new = self.memory_system.add_party_character(
+            party_id, name, role, gear_preferences
+        )
+
+        if is_new:
+            return f"**{name}** has been added to your party!"
+        else:
+            return f"**{name}** has been updated in your party!"
+
+    def _handle_remove_party_character(
+        self, tool_arguments: Dict, party_id: str
+    ) -> str:
+        """
+        Handle removing a party character.
+
+        Args:
+            tool_arguments: The parameters containing name
+            party_id: The party ID
+
+        Returns:
+            The response message
+        """
+        name = tool_arguments.get("name", "")
+        success = self.memory_system.remove_party_character(party_id, name)
+
+        if success:
+            return f"**{name}** has been removed from your party."
+        else:
+            return f"Character **{name}** not found in your party."
+
+    def _handle_view_party_members(self, party_id: str) -> str:
+        """
+        Handle viewing party members.
+
+        Args:
+            party_id: The party ID
+
+        Returns:
+            The formatted list of party members
+        """
+        characters = self.memory_system.list_party_characters(party_id)
+
+        if not characters or len(characters) == 0:
+            return "You don't have any party members yet."
+
+        tool_response = "**Your Party Members:**\n\n"
+        for char in characters:
+            tool_response += f"**{char['name']}**\n"
+            tool_response += f"• Role: {char['role']}\n"
+            if char.get("gear_preferences"):
+                tool_response += (
+                    f"• Gear Preferences: {', '.join(char['gear_preferences'])}\n"
+                )
+            else:
+                tool_response += "• Gear Preferences: None\n"
+            tool_response += "\n"
+
+        return tool_response
+
+    def _handle_recommend_gear(
+        self, tool_arguments: Dict, user_id: str, party_id: str
+    ) -> str:
+        """
+        Handle gear recommendation.
+
+        Args:
+            tool_arguments: The parameters containing loot_description and excluded_characters
+            user_id: The user ID
+            party_id: The party ID
+
+        Returns:
+            The recommendation text
+        """
+        loot_description = tool_arguments.get("loot_description", "")
+        excluded_characters = tool_arguments.get("excluded_characters", [])
+
+        return self.execute_recommend_gear(
+            user_id, party_id, loot_description, excluded_characters
+        )
+
+    def _handle_unknown_action(self, tool_name: str) -> str:
+        """
+        Handle unknown tool actions.
+
+        Args:
+            tool_name: The unknown tool name
+
+        Returns:
+            Error message for unknown action
+        """
+        return f"Unknown action: {tool_name}"
 
     def build_messages(self, user_prompt, user_id) -> list[MessageParam]:
         short_term_context = self.memory_system.get_short_term_context(user_id, max_messages=10)

@@ -69,7 +69,7 @@ class GraphRAGSystem:
         self.retriever = None
         self.rag = None
 
-        self.storage = AppStorage()
+        self.storage = AppStorage(bucket_name=get_config_value("GCS_BUCKET_NAME"))
         self.tracking_file = "knowledge_base_tracking.json"
         self.processed_files: Dict[str, Dict] = self._load_tracking()
 

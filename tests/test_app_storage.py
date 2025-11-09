@@ -1,6 +1,5 @@
 """Unit tests for AppStorage."""
 
-import pytest
 from unittest.mock import Mock, patch
 from src.app_storage import AppStorage
 
@@ -9,7 +8,6 @@ class TestAppStorageInit:
     """Test AppStorage initialization."""
 
     @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {"GCS_BUCKET_NAME": "test-bucket"})
     def test_init_success(self, mock_client):
         """Test successful initialization with bucket name."""
         mock_bucket = Mock()
@@ -17,26 +15,17 @@ class TestAppStorageInit:
         mock_client_instance.bucket.return_value = mock_bucket
         mock_client.return_value = mock_client_instance
 
-        storage = AppStorage()
+        storage = AppStorage(bucket_name="test-bucket")
 
         assert storage.bucket_name == "test-bucket"
         assert storage.client is not None
         assert storage.bucket is not None
         mock_client_instance.bucket.assert_called_once_with("test-bucket")
 
-    @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {}, clear=True)
-    def test_init_missing_bucket_name(self, mock_client):
-        """Test initialization fails without GCS_BUCKET_NAME."""
-        with pytest.raises(ValueError, match="GCS_BUCKET_NAME environment variable is not set"):
-            AppStorage()
-
-
 class TestAppStorageWriteData:
     """Test AppStorage writedata method."""
 
     @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {"GCS_BUCKET_NAME": "test-bucket"})
     def test_writedata_success(self, mock_client):
         """Test successful data write."""
         mock_blob = Mock()
@@ -46,7 +35,7 @@ class TestAppStorageWriteData:
         mock_client_instance.bucket.return_value = mock_bucket
         mock_client.return_value = mock_client_instance
 
-        storage = AppStorage()
+        storage = AppStorage(bucket_name="test-bucket")
         test_data = "test data content"
         storage.writedata("test_file.json", test_data)
 
@@ -54,7 +43,6 @@ class TestAppStorageWriteData:
         mock_blob.upload_from_string.assert_called_once_with(test_data)
 
     @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {"GCS_BUCKET_NAME": "test-bucket"})
     def test_writedata_with_json(self, mock_client):
         """Test writing JSON data."""
         mock_blob = Mock()
@@ -64,7 +52,7 @@ class TestAppStorageWriteData:
         mock_client_instance.bucket.return_value = mock_bucket
         mock_client.return_value = mock_client_instance
 
-        storage = AppStorage()
+        storage = AppStorage(bucket_name="test-bucket")
         test_data = '{"key": "value", "number": 42}'
         storage.writedata("data.json", test_data)
 
@@ -75,8 +63,7 @@ class TestAppStorageWriteData:
 class TestAppStorageReadData:
     """Test AppStorage readdata method."""
 
-    @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {"GCS_BUCKET_NAME": "test-bucket"})
+    @patch("src.app_storage.storage.Client")    
     def test_readdata_success(self, mock_client):
         """Test successful data read."""
         mock_blob = Mock()
@@ -88,7 +75,7 @@ class TestAppStorageReadData:
         mock_client_instance.bucket.return_value = mock_bucket
         mock_client.return_value = mock_client_instance
 
-        storage = AppStorage()
+        storage = AppStorage(bucket_name="test-bucket")
         result = storage.readdata("test_file.json")
 
         assert result == "test data content"
@@ -97,7 +84,6 @@ class TestAppStorageReadData:
         mock_blob.download_as_text.assert_called_once()
 
     @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {"GCS_BUCKET_NAME": "test-bucket"})
     def test_readdata_file_not_exists(self, mock_client):
         """Test reading non-existent file returns None."""
         mock_blob = Mock()
@@ -108,7 +94,7 @@ class TestAppStorageReadData:
         mock_client_instance.bucket.return_value = mock_bucket
         mock_client.return_value = mock_client_instance
 
-        storage = AppStorage()
+        storage = AppStorage(bucket_name="test-bucket")
         result = storage.readdata("nonexistent.json")
 
         assert result is None
@@ -116,8 +102,7 @@ class TestAppStorageReadData:
         mock_blob.exists.assert_called_once()
         mock_blob.download_as_text.assert_not_called()
 
-    @patch("src.app_storage.storage.Client")
-    @patch.dict("os.environ", {"GCS_BUCKET_NAME": "test-bucket"})
+    @patch("src.app_storage.storage.Client")    
     def test_readdata_json_content(self, mock_client):
         """Test reading JSON data."""
         mock_blob = Mock()
@@ -130,7 +115,7 @@ class TestAppStorageReadData:
         mock_client_instance.bucket.return_value = mock_bucket
         mock_client.return_value = mock_client_instance
 
-        storage = AppStorage()
+        storage = AppStorage(bucket_name="test-bucket")
         result = storage.readdata("data.json")
 
         assert result == json_data

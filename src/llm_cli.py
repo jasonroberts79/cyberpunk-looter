@@ -42,7 +42,7 @@ class LLMCLIHarness:
         print("  - Type your questions naturally")
         print("  - Commands: 'reindex', 'help', 'exit', 'quit'\n")
 
-    async def initialize(self):
+    def initialize(self):
         """Initialize all services."""
         pprint(dotenv_values(".env"))
 
@@ -73,7 +73,7 @@ class LLMCLIHarness:
         print("    help     - Show this help message")
         print("    exit     - Exit the CLI\n")
 
-    def handle_tool_calls(self, tool_calls: list) -> bool:
+    async def handle_tool_calls(self, tool_calls: list) -> bool:
         for tool_call in tool_calls:
             tool_name = tool_call["name"]
             tool_arguments = tool_call["arguments"]
@@ -98,7 +98,7 @@ class LLMCLIHarness:
 
             # Get user confirmation
             while True:
-                response = input(f"{Colors.BOLD}Confirm? (y/n): {Colors.END}").strip().lower()
+                response = (await asyncio.to_thread(input, f"{Colors.BOLD}Confirm? (y/n): {Colors.END}")).strip().lower()
                 if response in ["y", "yes"]:
                     # Execute the action
                     result_message = self.llm_service.execute_tool_action(
@@ -115,7 +115,7 @@ class LLMCLIHarness:
 
         return True
 
-    def process_query(self, question: str):
+    async def process_query(self, question: str):
         """Process a user query."""
         if not self.llm_service:
             print(f"{Colors.RED}Error: LLM service not initialized{Colors.END}")
@@ -127,7 +127,7 @@ class LLMCLIHarness:
             tool_calls = self.llm_service.extract_tool_calls(response)
             # Handle tool calls if present
             if tool_calls is not None and len(tool_calls) > 0:
-                self.handle_tool_calls(tool_calls)
+                await self.handle_tool_calls(tool_calls)
                 return
 
             # Get the answer text
@@ -147,14 +147,14 @@ class LLMCLIHarness:
 
     async def run(self):
         """Run the interactive CLI."""
-        await self.initialize()
+        self.initialize()
         await self.llm_service.initialize()
         self.print_banner()
 
         while True:
             try:
                 # Get user input
-                user_input = input(f"{Colors.BOLD}{Colors.GREEN}You: {Colors.END}").strip()
+                user_input = (await asyncio.to_thread(input, f"{Colors.BOLD}{Colors.GREEN}You: {Colors.END}")).strip()
 
                 if not user_input:
                     continue
@@ -172,7 +172,7 @@ class LLMCLIHarness:
                     continue
 
                 # Process as a query
-                self.process_query(user_input)
+                await self.process_query(user_input)
 
             except KeyboardInterrupt:
                 print(f"\n\n{Colors.BLUE}Goodbye!{Colors.END}\n")
