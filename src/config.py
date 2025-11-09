@@ -119,7 +119,7 @@ class AppConfig(BaseModel):
         from app_config import get_config_value
 
         return cls(
-            discord_token=get_config_value("DISCORD_TOKEN"),
+            discord_token=get_config_value("DISCORD_BOT_TOKEN"),
             anthropic_api_key=get_config_value("ANTHROPIC_API_KEY"),
             openai_api_key=get_config_value("OPENAI_API_KEY"),
             neo4j_uri=get_config_value("NEO4J_URI"),
