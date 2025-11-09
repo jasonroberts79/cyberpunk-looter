@@ -16,11 +16,11 @@ An intelligent Discord bot powered by Graph-based Retrieval-Augmented Generation
 
 ### Prerequisites
 
-1. **Discord Bot**: See [DISCORD_SETUP.md](DISCORD_SETUP.md) for complete setup instructions
+1. **Discord Bot**: See [DISCORD_SETUP.md](docs/DISCORD_SETUP.md) for complete setup instructions
    - **IMPORTANT**: Enable "Message Content Intent" in Bot settings
 2. **API Keys**:
    - OpenAI: [platform.openai.com](https://platform.openai.com/api-keys)
-   - see [OPENAI_SETUP.md](OPENAI_SETUP.md)
+   - see [OPENAI_SETUP.md](docs/OPENAI_SETUP.md)
 
 ### Installation
 
@@ -59,7 +59,7 @@ Run tests with `uv`:
 uv run pytest
 ```
 
-See [TESTING.md](TESTING.md) for comprehensive testing documentation.
+See [TESTING.md](docs/TESTING.md) for comprehensive testing documentation.
 
 ## Architecture
 
@@ -80,7 +80,7 @@ See [TESTING.md](TESTING.md) for comprehensive testing documentation.
 
 Deploy to Google Cloud Run with Terraform and GitHub Actions.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete instructions including:
+See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete instructions including:
 - GCP service account setup
 - GitHub secrets configuration
 - Automated CI/CD pipeline
