@@ -5,7 +5,7 @@ This module implements the registry pattern for tool management,
 providing a centralized place to register and retrieve tools.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 

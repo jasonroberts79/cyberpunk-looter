@@ -7,8 +7,6 @@ and dictionaries throughout the codebase, improving type safety and clarity.
 
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from anthropic.types import ToolUseBlock
-from anthropic.types.message import Message
 from pydantic import BaseModel, Field
 
 class ConversationMessage(BaseModel):

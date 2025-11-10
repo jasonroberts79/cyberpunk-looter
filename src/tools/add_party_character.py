@@ -1,6 +1,6 @@
 """Tool handler for adding party characters."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 from interfaces import PartyRepository

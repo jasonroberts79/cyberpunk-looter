@@ -145,7 +145,7 @@ async def clear_memory(ctx):
         return
 
     user_id = str(ctx.author.id)
-    container.unified_memory_system.clear_messages(user_id)
+    container.conversation_memory.clear_messages(user_id)
     await ctx.send("Your conversation history has been cleared!")
 
 

@@ -6,8 +6,7 @@ implementing the Strategy pattern for tool execution.
 """
 
 from abc import ABC, abstractmethod
-import json
-from typing import Dict, Any, Optional, cast
+from typing import Dict, Any
 from anthropic.types import ToolParam
 from pydantic import BaseModel
 

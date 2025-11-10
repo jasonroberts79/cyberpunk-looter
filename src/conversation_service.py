@@ -12,12 +12,10 @@ from anthropic.types import ContentBlock
 from message_builder import MessageBuilder
 from prompt_library import create_main_system_prompt
 from config import LLMConfig
-from bot_reactions import DiscordReactions
 from exceptions import LLMServiceError
 from graphrag_system import GraphRAGSystem
-from interfaces import PartyRepository
+from interfaces import ConversationMemory, PartyRepository
 from tool_execution_service import ToolExecutionService
-from unified_memory_system import UnifiedMemorySystem
 
 class ConversationService:
     """
@@ -31,7 +29,7 @@ class ConversationService:
         self,
         anthropic_client: Anthropic,
         context_provider: GraphRAGSystem,
-        memory_provider: UnifiedMemorySystem,
+        memory_provider: ConversationMemory,
         party_repository: PartyRepository,
         message_builder: MessageBuilder,
         tool_execution_service: ToolExecutionService,        
@@ -88,7 +86,7 @@ class ConversationService:
         """
         
         # Update user interaction count
-        self.memory_provider.update_long_term(user_id, "interaction", "") # TODO: fix needing to pass an empty string
+        #self.memory_provider.update_long_term(user_id, "interaction", "") # TODO: fix needing to pass an empty string
 
         # Get context from GraphRAG
         context = self.context_provider.get_context_for_query(
@@ -97,14 +95,14 @@ class ConversationService:
         )
 
         # Get user and party summaries
-        user_summary = self.memory_provider.get_long_term_summary(user_id)
+        #user_summary = self.memory_provider.get_long_term_summary(user_id)
         party_summary = self.party_repository.get_party_summary(party_id)
 
         # Build messages with conversation history
         messages = self.message_builder.build_messages(question, user_id)
 
         # Create system prompt with all context
-        system_prompt = create_main_system_prompt(context, user_summary, party_summary)
+        system_prompt = create_main_system_prompt(context, "", party_summary)
 
         try:
             # Call the LLM API
@@ -132,7 +130,7 @@ class ConversationService:
             self.memory_provider.add_message(user_id, "user", json.dumps(messages[-1]))
             
             for block in response.content:
-                self.memory_provider.add_message(user_id, "assistant", json.dumps(block))
+                self.memory_provider.add_message(user_id, "assistant", block.model_dump_json())
 
             return response.content
 

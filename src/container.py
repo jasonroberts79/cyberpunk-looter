@@ -11,7 +11,6 @@ from config import AppConfig
 from conversation_memory import ConversationMemory
 from user_memory_repository import UserMemoryRepository
 from party_repository import PartyRepository
-from unified_memory_system import UnifiedMemorySystem
 from message_builder import MessageBuilder
 from conversation_service import ConversationService
 from tool_execution_service import ToolExecutionService
@@ -19,7 +18,7 @@ from tools.registry import ToolRegistry
 from tools.add_party_character import AddPartyCharacterTool
 from tools.remove_party_character import RemovePartyCharacterTool
 from tools.view_party_members import ViewPartyMembersTool
-from tools.recommend_gear import RecommendGearTool
+#from tools.recommend_gear import RecommendGearTool
 from graphrag_system import GraphRAGSystem
 from bot_reactions import DiscordReactions
 
@@ -45,8 +44,7 @@ class Container:
         # Lazy initialization - components are created on first access
         self._storage: AppStorage | None = None
         self._conversation_memory: ConversationMemory | None = None
-        self._user_memory_repository: UserMemoryRepository | None = None
-        self._unified_memory_system: UnifiedMemorySystem | None = None
+        self._user_memory_repository: UserMemoryRepository | None = None        
         self._party_repository: PartyRepository | None = None
         self._message_builder: MessageBuilder | None = None
         self._anthropic_client: Anthropic | None = None
@@ -83,17 +81,6 @@ class Container:
                 config=self.config.memory
             )
         return self._user_memory_repository
-
-    @property
-    def unified_memory_system(self) -> UnifiedMemorySystem:
-        """Get or create the unified memory system instance."""
-        if self._unified_memory_system is None:
-            self._unified_memory_system = UnifiedMemorySystem(
-                conversation_memory=self.conversation_memory,
-                user_memory_repository=self.user_memory_repository,
-                config=self.config.memory
-            )
-        return self._unified_memory_system
 
     @property
     def party_repository(self) -> PartyRepository:
@@ -141,13 +128,13 @@ class Container:
             registry.register(AddPartyCharacterTool(self.party_repository))
             registry.register(RemovePartyCharacterTool(self.party_repository))
             registry.register(ViewPartyMembersTool(self.party_repository))
-            registry.register(RecommendGearTool(
-                party_repository=self.party_repository,
-                context_provider=self.graphrag_system,
-                memory_provider=self.unified_memory_system,
-                llm_client=self.anthropic_client,
-                config=self.config.llm
-            ))
+            #registry.register(RecommendGearTool(
+            #    party_repository=self.party_repository,
+            #    context_provider=self.graphrag_system,
+            #    memory_provider=self.unified_memory_system,
+            #    llm_client=self.anthropic_client,
+            #    config=self.config.llm
+            #))
 
             self._tool_registry = registry
         return self._tool_registry
@@ -158,7 +145,7 @@ class Container:
         if self._tool_execution_service is None:
             self._tool_execution_service = ToolExecutionService(
                 registry=self.tool_registry,
-                memory_provider=self.unified_memory_system
+                memory_provider=self.conversation_memory
             )
         return self._tool_execution_service
 
@@ -169,7 +156,7 @@ class Container:
             self._conversation_service = ConversationService(
                 anthropic_client=self.anthropic_client,
                 context_provider=self.graphrag_system,
-                memory_provider=self.unified_memory_system,
+                memory_provider=self.conversation_memory,
                 party_repository=self.party_repository,
                 message_builder=self.message_builder,
                 tool_execution_service=self.tool_execution_service,

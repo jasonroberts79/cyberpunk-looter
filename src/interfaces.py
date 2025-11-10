@@ -35,7 +35,7 @@ class Storage(Protocol):
         ...
 
 
-class MemoryProvider(Protocol):
+class ConversationMemory(Protocol):
     """Abstract interface for memory operations."""
 
     def add_message(self, user_id: str, role: str, content: Optional[str]) -> None:
@@ -70,6 +70,7 @@ class MemoryProvider(Protocol):
         """
         ...
 
+class LongTermMemory(Protocol):
     def update_long_term(
         self, user_id: str, key: str, value: str, category: Optional[str] = None
     ) -> None:

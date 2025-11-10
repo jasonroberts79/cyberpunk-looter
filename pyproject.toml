@@ -29,6 +29,7 @@ dev = [
     "assertpy>=1.1",
     "pytest-env>=1.2.0",
     "pyright>=1.1.407",
+    "pytest-cov>=7.0.0",
 ]
 
 [tool.pytest.ini_options]

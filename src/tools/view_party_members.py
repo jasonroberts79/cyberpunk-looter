@@ -1,6 +1,6 @@
 """Tool handler for viewing party members."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from anthropic.types import ToolParam
 from tools.base import ToolHandler, ToolExecutionResult
 from interfaces import PartyRepository

@@ -6,7 +6,7 @@ the registry pattern, replacing the previous if/elif chain approach.
 """
 
 from tools.registry import ToolRegistry
-from interfaces import MemoryProvider
+from interfaces import ConversationMemory
 
 
 class ToolExecutionService:
@@ -20,7 +20,7 @@ class ToolExecutionService:
     def __init__(
         self,
         registry: ToolRegistry,
-        memory_provider: MemoryProvider
+        memory_provider: ConversationMemory
     ) -> None:
         """
         Initialize the tool execution service.

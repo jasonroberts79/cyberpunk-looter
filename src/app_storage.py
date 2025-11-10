@@ -5,6 +5,8 @@ This module provides a Storage implementation using Google Cloud Storage,
 with proper error handling and type safety.
 """
 
+import os
+import pprint
 from typing import Optional
 from google.cloud import storage
 from google.api_core import exceptions as gcp_exceptions
@@ -33,7 +35,7 @@ class AppStorage:
         """
         if not bucket_name or not bucket_name.strip():
             raise ConfigurationError("Bucket name cannot be empty")
-
+        pprint.pprint(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
         self.bucket_name = bucket_name.strip()
         self.client = client or storage.Client()
 

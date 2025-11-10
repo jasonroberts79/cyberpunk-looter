@@ -43,7 +43,7 @@ class LLMCLIHarness:
     async def initialize(self):
         """Initialize all services."""        
         await self.container.initialize()        
-        self.container.unified_memory_system.conversation_memory.clear_messages(self.user_id)        
+        self.container.conversation_memory.clear_messages(self.user_id)        
         print(f"{Colors.GREEN}✓ All services initialized successfully!{Colors.END}\n")
 
     def print_help(self):
